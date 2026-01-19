@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Wrapper,
@@ -12,38 +13,104 @@ import {
   Button,
 } from "./Profile.styled";
 
+// API dan keladigan ma'lumot turlari uchun interfeys
 interface User {
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
-  height: number;
-  weight: number;
+  height: number | null;
+  weight: number | null;
   location: string;
   bio: string;
   isActive: boolean;
   createdAt: string;
-  gymId: number;
+  gymId: number | null;
   avatar: string;
 }
 
-const user: User = {
-  firstName: "John",
-  lastName: "Doe",
-  phone: "+998901234567",
-  email: "john.doe@gmail.com",
-  location: "Toshkent",
-  bio: "I love gym",
-  weight: 75.5,
-  height: 180,
-  isActive: true,
-  createdAt: "2026-01-16T12:58:41.175Z",
-  gymId: 1,
-  avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-};
-
 const Profile = () => {
   const navigate = useNavigate();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      // 1. Tokenni tekshirish
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
+      try {
+        // 2. Backendga so'rov (Home dagi kabi)
+        const response = await fetch(
+          "https://nt-gym-api.it-mahalla.uz/api/users",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.status === 401) {
+          localStorage.removeItem("token");
+          navigate("/login");
+          return;
+        }
+
+        const data = await response.json();
+
+        // 3. API ma'lumotlarini statega moslash (Mapping)
+        // Backendda ba'zi fieldlar bo'lmasligi mumkin (null), shuning uchun default qiymatlar beramiz.
+        const mappedUser: User = {
+          firstName: data.firstName || "Foydalanuvchi",
+          lastName: data.lastName || "",
+          email: data.email || "Kiritilmagan",
+          phone: data.phoneNumber || "Kiritilmagan",
+          // Agar backend height/weight bermasa, 0 yoki null deb olamiz
+          height: data.height || null,
+          weight: data.weight || null,
+          location: data.region || "Toshkent", // Backendda region bo'lsa
+          bio: data.bio || "Ma'lumot yo'q",
+          isActive: data.isActive ?? true, // Agar backend true/false qaytarsa
+          createdAt: data.createdAt,
+          gymId: data.gymId || null,
+          // Avatar backendda bo'lmasa, random rasm qo'yamiz
+          avatar: data.photoUrl
+            ? `https://nt-gym-api.it-mahalla.uz/api/files/${data.photoUrl}` // Agar rasm ID yoki path bo'lsa
+            : "https://randomuser.me/api/portraits/men/32.jpg",
+        };
+
+        setUser(mappedUser);
+      } catch (err) {
+        console.error("Profile fetch error:", err);
+        setError("Profil ma'lumotlarini yuklashda xatolik.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [navigate]);
+
+  if (loading)
+    return (
+      <Wrapper>
+        <Content>Yuklanmoqda...</Content>
+      </Wrapper>
+    );
+  if (error)
+    return (
+      <Wrapper>
+        <Content>{error}</Content>
+      </Wrapper>
+    );
+  if (!user) return null;
 
   return (
     <Wrapper>
@@ -78,12 +145,12 @@ const Profile = () => {
 
           <Item>
             <span>Height</span>
-            <p>{user.height} cm</p>
+            <p>{user.height ? `${user.height} cm` : "Not set"}</p>
           </Item>
 
           <Item>
             <span>Weight</span>
-            <p>{user.weight} kg</p>
+            <p>{user.weight ? `${user.weight} kg` : "Not set"}</p>
           </Item>
 
           <Item>
@@ -101,6 +168,20 @@ const Profile = () => {
             onClick={() => navigate("/users/profile/change-password")}
           >
             Change Password
+          </Button>
+          {/* Qo'shimcha: Tizimdan chiqish tugmasi kerak bo'lsa */}
+          <Button
+            style={{
+              backgroundColor: "#ff4d4d",
+              borderColor: "#ff4d4d",
+              marginTop: "10px",
+            }}
+            onClick={() => {
+              localStorage.removeItem("token");
+              navigate("/login");
+            }}
+          >
+            Logout
           </Button>
         </Actions>
       </Content>

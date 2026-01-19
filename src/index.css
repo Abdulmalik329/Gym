@@ -3,7 +3,9 @@
     margin: 0;
     box-sizing: border-box;
 }
-
+/* body .change-password-page{
+    background: linear-gradient(180deg, #0b1620, #08141f);
+    min-height: 100vh;} */
 body{
     background-color: #101922;
 }
