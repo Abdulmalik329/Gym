@@ -41,12 +41,8 @@ const Navbar: React.FC<NavbarProps> = ({ unreadCount = 0 }) => {
         // setUserProfile(data);
 
         // Hozircha mock data
-        const mockProfile: UserProfile = {
-          name: "Alex",
-          avatar: "https://randomuser.me/api/portraits/men/75.jpg",
-        };
 
-        setUserProfile(mockProfile);
+        // setUserProfile({});
         setLoading(false);
       } catch (error) {
         console.error("Profile ma'lumotlarini olishda xatolik:", error);

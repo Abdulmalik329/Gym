@@ -13,7 +13,25 @@ import {
   Button,
 } from "./Profile.styled";
 
-// API dan keladigan ma'lumot turlari uchun interfeys
+// --- YORDAMCHI FUNKSIYA: Tokenni decode qilish ---
+const decodeJwt = (token: string) => {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      window
+        .atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error("Tokenni o'qishda xatolik:", error);
+    return null;
+  }
+};
+
 interface User {
   firstName: string;
   lastName: string;
@@ -37,17 +55,25 @@ const Profile = () => {
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      // 1. Tokenni tekshirish
       const token = localStorage.getItem("token");
       if (!token) {
         navigate("/login");
         return;
       }
 
+      const decodedToken = decodeJwt(token);
+      const userId =
+        decodedToken?.id || decodedToken?.sub || decodedToken?.user?.id;
+
+      if (!userId) {
+        setError("Foydalanuvchi IDsi topilmadi. Qayta login qiling.");
+        setLoading(false);
+        return;
+      }
+
       try {
-        // 2. Backendga so'rov (Home dagi kabi)
         const response = await fetch(
-          "https://nt-gym-api.it-mahalla.uz/api/users",
+          `https://nt-gym-api.it-mahalla.uz/api/users/${userId}`,
           {
             method: "GET",
             headers: {
@@ -63,26 +89,35 @@ const Profile = () => {
           return;
         }
 
-        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(`Xatolik: ${response.status}`);
+        }
 
-        // 3. API ma'lumotlarini statega moslash (Mapping)
-        // Backendda ba'zi fieldlar bo'lmasligi mumkin (null), shuning uchun default qiymatlar beramiz.
+        const resData = await response.json();
+
+        // KONSOLDA TEKSHIRISH UCHUN (F12 ni bosib Console ga qarang)
+        console.log("Backenddan kelgan user ma'lumoti:", resData);
+
+        const data = Array.isArray(resData) ? resData[0] : resData;
+
+        // --- O'ZGARISH SHU YERDA ---
+        // Ikkala variantni ham tekshiramiz: first_name YOKI firstName
         const mappedUser: User = {
-          firstName: data.firstName || "Foydalanuvchi",
-          lastName: data.lastName || "",
+          firstName: data.first_name || data.firstName || "Ism yo'q",
+          lastName: data.last_name || data.lastName || "",
           email: data.email || "Kiritilmagan",
-          phone: data.phoneNumber || "Kiritilmagan",
-          // Agar backend height/weight bermasa, 0 yoki null deb olamiz
+          phone: data.phone || data.phoneNumber || "Kiritilmagan",
+
           height: data.height || null,
           weight: data.weight || null,
-          location: data.region || "Toshkent", // Backendda region bo'lsa
+          location: data.address || data.location || "Toshkent",
           bio: data.bio || "Ma'lumot yo'q",
-          isActive: data.isActive ?? true, // Agar backend true/false qaytarsa
+          isActive: data.isActive ?? true,
           createdAt: data.createdAt,
-          gymId: data.gymId || null,
-          // Avatar backendda bo'lmasa, random rasm qo'yamiz
+          gymId: data.gym_id || data.gymId || null,
+
           avatar: data.photoUrl
-            ? `https://nt-gym-api.it-mahalla.uz/api/files/${data.photoUrl}` // Agar rasm ID yoki path bo'lsa
+            ? `https://nt-gym-api.it-mahalla.uz/api/files/${data.photoUrl}`
             : "https://randomuser.me/api/portraits/men/32.jpg",
         };
 
@@ -108,6 +143,15 @@ const Profile = () => {
     return (
       <Wrapper>
         <Content>{error}</Content>
+        <Button
+          onClick={() => {
+            localStorage.removeItem("token");
+            navigate("/login");
+          }}
+          style={{ marginTop: 10 }}
+        >
+          Qayta kirish
+        </Button>
       </Wrapper>
     );
   if (!user) return null;
@@ -169,12 +213,11 @@ const Profile = () => {
           >
             Change Password
           </Button>
-          {/* Qo'shimcha: Tizimdan chiqish tugmasi kerak bo'lsa */}
+
           <Button
             style={{
               backgroundColor: "#ff4d4d",
               borderColor: "#ff4d4d",
-              marginTop: "10px",
             }}
             onClick={() => {
               localStorage.removeItem("token");

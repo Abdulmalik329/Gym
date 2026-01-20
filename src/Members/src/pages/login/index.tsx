@@ -10,6 +10,24 @@ import {
   BottomLinks,
 } from "./Login.styled";
 
+// Tokenni decode qiluvchi funksiya (Login faylida ham bo'lishi kerak)
+const decodeJwt = (token: string) => {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      window
+        .atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    return null;
+  }
+};
+
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -20,10 +38,7 @@ const Login: React.FC = () => {
     setForm({ ...form, [name]: value });
   };
 
-  const handleLogin = async (
-    e: React.MouseEvent<HTMLButtonElement> | React.FormEvent
-  ) => {
-    // 1. Sahifa yangilanib ketishini oldini olish
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!form.email || !form.password) {
@@ -34,81 +49,56 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      // 2. Email yoki Telefon raqam ekanligini aniqlash
       const isEmail = form.email.includes("@");
-
-      const payload: any = {
-        password: form.password,
-      };
-
-      // Agar "@" belgisi bo'lsa email deb yuboramiz, bo'lmasa phoneNumber
-      if (isEmail) {
-        payload.email = form.email;
-      } else {
-        payload.phoneNumber = form.email;
-      }
-
-      console.log("Yuborilayotgan ma'lumot:", payload);
+      const payload: any = { password: form.password };
+      if (isEmail) payload.email = form.email;
+      else payload.phoneNumber = form.email;
 
       const response = await fetch(
         "https://nt-gym-api.it-mahalla.uz/api/auth/login",
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         }
       );
 
       const data = await response.json();
-      console.log("Server javobi:", data);
 
       if (response.ok) {
-        // 3. Tokenni olish va saqlash (token yoki accessToken)
         const token = data.token || data.accessToken;
 
-        if (!token) {
-          alert("Xatolik: Server token qaytarmadi!");
-          setLoading(false);
-          return;
-        }
-
+        // 1. Tokenni saqlash
         localStorage.setItem("token", token);
-        console.log("Token saqlandi.");
 
-        // 4. Rolni aniqlash (kichik harfga o'tkazib)
-        // Backenddan data.user.role yoki data.role kelishi mumkin
-        const rawRole = data?.user?.role || data?.role || "";
-        const userRole = rawRole.toLowerCase();
+        // 2. ID ni Tokendan olish va saqlash (MUHIM QISM)
+        const decoded = decodeJwt(token);
+        // Token ichida ID odatda 'sub', 'id' yoki 'user_id' bo'ladi
+        const userId = decoded?.id || decoded?.sub || decoded?.user?.id;
 
-        console.log("Aniqlangan rol:", userRole);
-
-        // 5. Yo'naltirish
-        switch (userRole) {
-          case "super_admin":
-            navigate("/admin/dashboard");
-            break;
-
-          case "gym_manager":
-          case "gymmanager":
-            navigate("/manager/dashboard");
-            break;
-
-          case "member":
-            navigate("/users"); // Memberlar uchun sahifa
-            break;
-
-          default:
-            // Agar rol noma'lum bo'lsa ham, token borligi uchun users ga o'tkazamiz
-            navigate("/users");
+        if (userId) {
+          localStorage.setItem("userId", userId);
+          console.log("User ID localStorage ga saqlandi:", userId);
+        } else {
+          console.error("Token ichida ID topilmadi!");
         }
+
+        // 3. Refresh tokenni cookie ga yozish
+        if (data.refreshToken) {
+          document.cookie = `refreshToken=${data.refreshToken}; path=/; Secure; SameSite=Strict`;
+        }
+
+        // 4. Rolga qarab yo'naltirish
+        const userRole = (data?.user?.role || data?.role || "").toLowerCase();
+        if (userRole.includes("admin")) navigate("/admin/dashboard");
+        else if (userRole.includes("manager")) navigate("/manager/dashboard");
+        else navigate("/users");
       } else {
-        alert(data.message || "Login yoki parol noto'g'ri!");
+        alert(data.message || "Login xatoligi");
       }
     } catch (error) {
       console.error("Login error:", error);
-      alert("Server bilan aloqa yo'q!");
+      alert("Server xatosi");
     } finally {
       setLoading(false);
     }
@@ -119,35 +109,23 @@ const Login: React.FC = () => {
       <LoginCard as="form" onSubmit={handleLogin}>
         <Title>Welcome Back</Title>
         <Subtitle>Please login to your account</Subtitle>
-
         <Input
-          type="text"
           name="email"
-          placeholder="Email"
-          value={form.email}
+          placeholder="Email or Phone"
           onChange={handleChange}
         />
         <Input
           type="password"
           name="password"
           placeholder="Password"
-          value={form.password}
           onChange={handleChange}
         />
-
         <Button type="submit" disabled={loading}>
-          {loading ? "CHECKING..." : "LOGIN"}
+          {loading ? "Checking..." : "LOGIN"}
         </Button>
-
         <BottomLinks>
           <span>Forgot password?</span>
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate("/register");
-            }}
-          >
+          <a href="#" onClick={() => navigate("/register")}>
             Sign up now
           </a>
         </BottomLinks>

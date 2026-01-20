@@ -10,6 +10,10 @@ import {
   WorkoutBadge,
   BadgeNumber,
   BadgeText,
+  StatsGrid,
+  StatCard,
+  StatNumber,
+  StatLabel,
   MembershipCard,
   CardHeader,
   CardTitle,
@@ -26,38 +30,47 @@ import {
   StreakBadge,
   VisitsCount,
   VisitsNumber,
-  VisitsChange,
   WeekGrid,
-  DayItem,
-  DayLabel,
-  PerksCard,
-  PerksTitle,
-  PerksList,
-  PerkItem,
-  PerkIcon,
-  PerkContent,
-  PerkTitle,
-  PerkDescription,
-  ChallengeCard,
-  ChallengeTitle,
-  ChallengeDescription,
-  ChallengeProgress,
-  ProgressText,
   PaymentHistoryCard,
   PaymentHeader,
-  DownloadLink,
   PaymentTable,
   TableHeader,
   TableRow,
   TableCell,
-  StatusCell,
-  DownloadIcon,
-  StatsGrid,
-  StatCard,
-  StatNumber,
-  StatLabel,
+  PerksCard,
+  PerksTitle,
+  PerksList,
   MotivationCard,
+  // Yangi importlar (Home.styled.tsx ga qo'shganingizdan keyin ishlaydi)
+  PlansSection,
+  SectionTitle,
+  PlansGrid,
+  PlanCard,
+  PlanName,
+  PlanPrice,
+  PlanFeatureList,
+  PlanFeatureItem,
+  PlanButton,
 } from "./Home.styled";
+
+// --- YORDAMCHI FUNKSIYA: Tokenni decode qilish ---
+const decodeJwt = (token: string) => {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      window
+        .atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error("Tokenni o'qishda xatolik:", error);
+    return null;
+  }
+};
 
 const Home = () => {
   const navigate = useNavigate();
@@ -66,7 +79,7 @@ const Home = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchMemberData = async () => {
+    const fetchAllData = async () => {
       // 1. Tokenni olish
       const token = localStorage.getItem("token");
 
@@ -75,94 +88,109 @@ const Home = () => {
         return;
       }
 
-      try {
-        // --- O'ZGARISH SHU YERDA ---
-        // Oldin: /api/users (Bu Adminlar uchun ro'yxat)
-        // Hozir: /api/users/profile (Bu Memberning o'z ma'lumoti)
-        const response = await fetch(
-          "https://nt-gym-api.it-mahalla.uz/api/users/profile",
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+      // 2. Token ichidan ID ni olish
+      const decodedToken = decodeJwt(token);
+      const userId =
+        decodedToken?.id || decodedToken?.sub || decodedToken?.user?.id;
 
-        // Agar token eskirgan bo'lsa (401) loginga otamiz.
-        // Lekin 403 (Ruxsat yo'q) bo'lsa, demak URL noto'g'ri tanlangan bo'lishi mumkin.
-        if (response.status === 401) {
-          localStorage.removeItem("token");
+      if (!userId) {
+        setError("Token ichidan ID topilmadi. Qayta kiring.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // 3. Promise.all bilan barcha API larga parallel so'rov yuboramiz
+        const [userRes, paymentsRes, attendanceRes, plansRes] =
+          await Promise.all([
+            fetch(`https://nt-gym-api.it-mahalla.uz/api/users/${userId}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            fetch(`https://nt-gym-api.it-mahalla.uz/api/payments`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            fetch(`https://nt-gym-api.it-mahalla.uz/api/attendances`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            fetch(`https://nt-gym-api.it-mahalla.uz/api/membership-plans`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+          ]);
+
+        // Agar token eskirgan bo'lsa (401)
+        if (userRes.status === 401) {
+          localStorage.clear();
           navigate("/login");
           return;
         }
 
-        if (!response.ok) {
-          throw new Error(`Xatolik: ${response.status}`);
-        }
+        // --- JSON Parsing ---
+        const userDataRaw = await userRes.json();
+        const paymentsData = paymentsRes.ok ? await paymentsRes.json() : [];
+        const attendanceData = attendanceRes.ok
+          ? await attendanceRes.json()
+          : [];
+        const plansData = plansRes.ok ? await plansRes.json() : [];
 
-        const resData = await response.json();
-        console.log("User Profile Data:", resData); // Konsolda tekshirish uchun
+        // User array ichida kelishi mumkin, shuni tekshiramiz
+        const userData = Array.isArray(userDataRaw)
+          ? userDataRaw[0]
+          : userDataRaw;
 
-        // 3. Mapping (Backenddan kelgan ma'lumotni UI ga moslash)
+        // --- MAPPING ---
+
+        // 1. Ism Familiyani to'g'irlash
+        // Backend first_name (snake_case) yoki firstName (camelCase) berishi mumkin
+        const fName = userData.first_name || userData.firstName || "";
+        const lName = userData.last_name || userData.lastName || "";
+        const fullName = `${fName} ${lName}`.trim();
+        // Agar ism bo'sh bo'lsa, telefon raqamni ko'rsatamiz
+        const displayName =
+          fullName.length > 0 ? fullName : userData.phone || "Foydalanuvchi";
+
+        // 2. Davomat soni (Kelgan kunlar)
+        const visitCount = Array.isArray(attendanceData)
+          ? attendanceData.length
+          : 0;
+
+        // 3. Ma'lumotlarni statega tayyorlash
         const formattedData = {
           user: {
-            name: resData.firstName
-              ? `${resData.firstName} ${resData.lastName}`
-              : resData.phoneNumber || "Foydalanuvchi",
-            email:
-              resData.email || resData.phoneNumber || "Aloqa ma'lumoti yo'q",
-          },
-          stats: {
-            workouts: resData.workoutCount || 0,
-            calories: resData.caloriesBurned || 0,
-            hours: resData.totalHours || 0,
+            name: displayName,
+            bio: userData.bio || "Xush kelibsiz!",
+            weight: userData.weight || 0,
+            height: userData.height || 0,
+            phone: userData.phone,
+            address: userData.address || "Manzil kiritilmagan",
           },
           membership: {
-            plan: resData.plan?.name || "Standard",
-            status: resData.isActive ? "Active" : "Inactive",
-            expiresAt: resData.expireDate
-              ? new Date(resData.expireDate).toDateString()
-              : "N/A",
+            planName: userData.plan?.name || "Member",
+            status: userData.isActive !== false ? "Faol" : "Nofaol",
+            expiresAt: userData.expireDate
+              ? new Date(userData.expireDate).toDateString()
+              : "-",
           },
           attendance: {
-            visits: resData.visitsCount || 0,
-            improvement: 10,
-            streak: resData.streak || 0,
-            week: resData.weeklyAttendance || {
-              M: false,
-              T: false,
-              W: false,
-              Th: false,
-              F: false,
-              S: false,
-            },
+            totalVisits: visitCount, // Jami kelgan kunlar soni
+            history: Array.isArray(attendanceData)
+              ? attendanceData.slice(0, 5)
+              : [], // Oxirgi 5 ta
           },
-          perks: [
-            { icon: "🏋️", title: "Gym Access", description: "Full equipment" },
-            { icon: "🧖", title: "Sauna", description: "Available" },
-          ],
-          challenge: {
-            completed: resData.visitsCount || 0,
-            total: 20,
-          },
-          payments: resData.payments || [],
+          payments: Array.isArray(paymentsData) ? paymentsData : [],
+          plans: Array.isArray(plansData) ? plansData : [],
+          stats: { hours: 0 },
         };
 
         setData(formattedData);
-      } catch (err) {
-        console.error("Data fetch error:", err);
-        // Xatolik bo'lsa ham darhol loginga otmaymiz, xabarni chiqaramiz.
-        setError(
-          "Ma'lumotlarni yuklashda xatolik yuz berdi. Iltimos qayta urining."
-        );
+      } catch (err: any) {
+        console.error("Fetch Error:", err);
+        setError("Ma'lumotlarni yuklashda xatolik yuz berdi.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchMemberData();
+    fetchAllData();
   }, [navigate]);
 
   if (loading)
@@ -171,181 +199,210 @@ const Home = () => {
         <Title>Yuklanmoqda...</Title>
       </Container>
     );
+
   if (error)
     return (
       <Container>
-        <Title>{error}</Title>
-        <Subtitle onClick={() => navigate("/login")}>Qayta kirish</Subtitle>
+        <Title style={{ color: "#ff4d4d" }}>{error}</Title>
+        <Subtitle
+          onClick={() => {
+            localStorage.clear();
+            navigate("/login");
+          }}
+          style={{ cursor: "pointer", textDecoration: "underline" }}
+        >
+          Qayta kirish
+        </Subtitle>
       </Container>
     );
+
   if (!data) return null;
 
   return (
     <Container>
       <Header>
         <WelcomeSection>
-          <Title>Welcome back, {data.user.name} </Title>
-          <Subtitle>You’re doing great. Keep pushing forward!</Subtitle>
+          {/* ISM FAMILIYA CHIQADIGAN JOY */}
+          <Title>Salom, {data.user.name}</Title>
+          <Subtitle>{data.user.bio}</Subtitle>
         </WelcomeSection>
       </Header>
 
       <HeroImage backgroundImage="https://images.unsplash.com/photo-1599058917212-d750089bc07e">
+        {/* O'RTADAGI DUMALOQ - KELGAN KUNLAR SONI */}
         <WorkoutBadge>
-          <BadgeNumber>{data.stats.workouts}</BadgeNumber>
-          <BadgeText>WORKOUTS</BadgeText>
+          <BadgeNumber>{data.attendance.totalVisits}</BadgeNumber>
+          <BadgeText>TASHRIFLAR</BadgeText>
         </WorkoutBadge>
       </HeroImage>
 
       <StatsGrid>
         <StatCard>
-          <StatNumber>{data.stats.workouts}</StatNumber>
-          <StatLabel>Workouts</StatLabel>
+          <StatNumber>{data.user.weight}</StatNumber>
+          <StatLabel>Vazn (kg)</StatLabel>
         </StatCard>
         <StatCard>
-          <StatNumber>{data.stats.calories}</StatNumber>
-          <StatLabel>Calories</StatLabel>
+          <StatNumber>{data.user.height}</StatNumber>
+          <StatLabel>Bo'y (sm)</StatLabel>
         </StatCard>
         <StatCard>
-          <StatNumber>{data.stats.hours}</StatNumber>
-          <StatLabel>Hours</StatLabel>
+          <StatNumber>{data.attendance.totalVisits}</StatNumber>
+          <StatLabel>Jami Tashriflar</StatLabel>
         </StatCard>
       </StatsGrid>
 
       <MembershipCard>
         <CardHeader>
           <div>
-            <Label>Membership</Label>
-            <CardTitle>{data.membership.plan}</CardTitle>
+            <Label>Joriy A'zolik</Label>
+            <CardTitle>{data.membership.planName}</CardTitle>
           </div>
         </CardHeader>
-
         <MembershipDetails>
           <DetailRow>
-            <Label>Status</Label>
+            <Label>Holati</Label>
             <StatusBadge>● {data.membership.status}</StatusBadge>
           </DetailRow>
           <DetailRow>
-            <Label>Expires</Label>
+            <Label>Tugash vaqti</Label>
             <Value>{data.membership.expiresAt}</Value>
+          </DetailRow>
+          <DetailRow>
+            <Label>Telefon</Label>
+            <Value style={{ fontSize: "12px" }}>{data.user.phone}</Value>
+          </DetailRow>
+          <DetailRow>
+            <Label>Manzil</Label>
+            <Value style={{ fontSize: "12px" }}>{data.user.address}</Value>
           </DetailRow>
         </MembershipDetails>
       </MembershipCard>
 
       <MainContent>
         <LeftColumn>
-          <AttendanceCard>
-            <AttendanceHeader>
-              <div>
-                <Label>Attendance</Label>
-                <VisitsCount>
-                  <VisitsNumber>{data.attendance.visits}</VisitsNumber>
-                  <VisitsChange>+{data.attendance.improvement}%</VisitsChange>
-                </VisitsCount>
-              </div>
-              <StreakBadge>🔥 {data.attendance.streak} day streak</StreakBadge>
-            </AttendanceHeader>
-
-            <WeekGrid>
-              {data.attendance.week &&
-                Object.entries(data.attendance.week).map(([d, v]) => (
-                  <DayItem key={d}>
-                    <DayLabel>{d}</DayLabel>
-                    <div
-                      style={{
-                        width: 30,
-                        height: 30,
-                        borderRadius: 6,
-                        background: v ? "#2B8FEB" : "#1A2634",
-                      }}
-                    />
-                  </DayItem>
-                ))}
-            </WeekGrid>
-          </AttendanceCard>
-
+          {/* TO'LOVLAR TARIXI (API dan) */}
           <PaymentHistoryCard>
             <PaymentHeader>
-              <Label>Payments</Label>
-              <DownloadLink>Download</DownloadLink>
+              <Label>To'lovlar Tarixi</Label>
             </PaymentHeader>
-
             <PaymentTable>
               <thead>
                 <TableHeader>
-                  <th>Date</th>
-                  <th>Plan</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                  <th></th>
+                  <th>Sana</th>
+                  <th>Summa</th>
+                  <th>Usul</th>
                 </TableHeader>
               </thead>
               <tbody>
                 {data.payments.length > 0 ? (
                   data.payments.map((p: any, i: number) => (
                     <TableRow key={i}>
-                      <TableCell>{p.date || p.createdAt}</TableCell>
-                      <TableCell>{p.plan || "Plan"}</TableCell>
-                      <TableCell>{p.amount}</TableCell>
-                      <StatusCell>{p.status}</StatusCell>
                       <TableCell>
-                        <DownloadIcon>⬇</DownloadIcon>
+                        {new Date(
+                          p.createdAt || Date.now()
+                        ).toLocaleDateString()}
                       </TableCell>
+                      <TableCell>{p.amount} UZS</TableCell>
+                      <TableCell>{p.paymentMethod || "Naqd"}</TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} style={{ textAlign: "center" }}>
-                      To'lovlar tarixi mavjud emas
+                    <TableCell
+                      colSpan={3}
+                      style={{ textAlign: "center", color: "#777" }}
+                    >
+                      To'lovlar mavjud emas
                     </TableCell>
                   </TableRow>
                 )}
               </tbody>
             </PaymentTable>
           </PaymentHistoryCard>
+
+          {/* DAVOMAT TARIXI (API dan) */}
+          <AttendanceCard>
+            <AttendanceHeader>
+              <div>
+                <Label>Davomat</Label>
+                <VisitsCount>
+                  <VisitsNumber>{data.attendance.totalVisits}</VisitsNumber>
+                </VisitsCount>
+              </div>
+              <StreakBadge>Jami</StreakBadge>
+            </AttendanceHeader>
+            <WeekGrid>
+              {data.attendance.history.length > 0 ? (
+                data.attendance.history.map((log: any, idx: number) => (
+                  <p
+                    key={idx}
+                    style={{ color: "#ccc", fontSize: "12px", margin: "5px 0" }}
+                  >
+                    ✅{" "}
+                    {new Date(log.createdAt || Date.now()).toLocaleDateString()}
+                  </p>
+                ))
+              ) : (
+                <p style={{ color: "#777", fontSize: "12px", padding: "10px" }}>
+                  Hali tashrif buyurilmagan
+                </p>
+              )}
+            </WeekGrid>
+          </AttendanceCard>
         </LeftColumn>
 
         <RightColumn>
           <PerksCard>
-            <PerksTitle>Perks</PerksTitle>
+            <PerksTitle>Qulayliklar</PerksTitle>
             <PerksList>
-              {data.perks.map((p: any, i: number) => (
-                <PerkItem key={i}>
-                  <PerkIcon>{p.icon}</PerkIcon>
-                  <PerkContent>
-                    <PerkTitle>{p.title}</PerkTitle>
-                    <PerkDescription>{p.description}</PerkDescription>
-                  </PerkContent>
-                </PerkItem>
-              ))}
+              <p style={{ color: "#777", fontSize: "12px" }}>
+                Siz hozirda {data.membership.planName} rejasidan
+                foydalanmoqdasiz.
+              </p>
             </PerksList>
           </PerksCard>
-
-          <ChallengeCard>
-            <ChallengeTitle>Monthly Challenge</ChallengeTitle>
-            <ChallengeDescription>
-              Complete 20 visits this month
-            </ChallengeDescription>
-            <ProgressText>
-              {data.challenge.completed}/{data.challenge.total}
-            </ProgressText>
-            <ChallengeProgress>
-              <div
-                style={{
-                  width: `${
-                    (data.challenge.completed / data.challenge.total) * 100
-                  }%`,
-                  height: "100%",
-                  background: "#fff",
-                }}
-              />
-            </ChallengeProgress>
-          </ChallengeCard>
-
-          <MotivationCard>
-            Consistency beats motivation. See you at the gym today!
-          </MotivationCard>
+          <MotivationCard>Harakatda barakat!</MotivationCard>
         </RightColumn>
       </MainContent>
+
+      {/* --- YANGI TARIFLAR QATORI --- */}
+      <PlansSection>
+        <SectionTitle>Mavjud Tariflar</SectionTitle>
+        <PlansGrid>
+          {data.plans.length > 0 ? (
+            data.plans.map((plan: any) => (
+              <PlanCard
+                key={plan.id}
+                active={data.membership.planName === plan.name}
+              >
+                <PlanName>{plan.name}</PlanName>
+                <PlanPrice>
+                  {plan.price} <span>so'm</span>
+                </PlanPrice>
+                <PlanFeatureList>
+                  <PlanFeatureItem>
+                    Davomiyligi: {plan.durationDays} kun
+                  </PlanFeatureItem>
+                  <PlanFeatureItem>
+                    {plan.description || "Barcha qulayliklar"}
+                  </PlanFeatureItem>
+                </PlanFeatureList>
+                <PlanButton active={data.membership.planName === plan.name}>
+                  {data.membership.planName === plan.name
+                    ? "JORIY REJA"
+                    : "TANLASH"}
+                </PlanButton>
+              </PlanCard>
+            ))
+          ) : (
+            <p
+              style={{ color: "#888", gridColumn: "1/-1", textAlign: "center" }}
+            >
+              Tariflar topilmadi
+            </p>
+          )}
+        </PlansGrid>
+      </PlansSection>
     </Container>
   );
 };
