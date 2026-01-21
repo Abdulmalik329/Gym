@@ -116,8 +116,8 @@ const Profile = () => {
           createdAt: data.createdAt,
           gymId: data.gym_id || data.gymId || null,
 
-          avatar: data.photoUrl
-            ? `https://nt-gym-api.it-mahalla.uz/api/files/${data.photoUrl}`
+          avatar: data.image_url
+            ? `https://nt-gym-api.it-mahalla.uz/uploads/${data.image_url}`
             : "https://randomuser.me/api/portraits/men/32.jpg",
         };
 

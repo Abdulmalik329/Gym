@@ -13,62 +13,135 @@ import {
   ProfileImage,
 } from "./Navbar.styled";
 
-interface NavbarProps {
-  unreadCount?: number;
-}
+const decodeJwt = (token: string) => {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      window
+        .atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    return null;
+  }
+};
 
 interface UserProfile {
   name: string;
   avatar: string;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ unreadCount = 0 }) => {
+const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [notifCount, setNotifCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // API dan user profile ma'lumotlarini olish
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        // Haqiqiy API endpoint
-        // const response = await fetch('https://your-api.com/api/user/profile', {
-        //   headers: {
-        //     'Authorization': `Bearer ${localStorage.getItem('token')}`
-        //   }
-        // });
-        // const data = await response.json();
-        // setUserProfile(data);
-
-        // Hozircha mock data
-
-        // setUserProfile({});
+    const initData = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
         setLoading(false);
+        return;
+      }
+
+      const decoded = decodeJwt(token);
+      const userId = decoded?.id || decoded?.sub || decoded?.user?.id;
+
+      if (!userId) return;
+
+      try {
+        // --- 1. USER MA'LUMOTINI OLISH (Avatar uchun) ---
+        const userRes = await fetch(
+          `https://nt-gym-api.it-mahalla.uz/api/users/${userId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        // --- 2. NOTIFICATIONLAR SONINI HISOBLASH ---
+        // Notifications sahifasidagi mantiq bilan bir xil bo'lishi kerak
+        const paymentsRes = await fetch(
+          `https://nt-gym-api.it-mahalla.uz/api/payments`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        const attendanceRes = await fetch(
+          `https://nt-gym-api.it-mahalla.uz/api/attendances`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        // -- User Profilini o'rnatish --
+        if (userRes.ok) {
+          const userDataRaw = await userRes.json();
+          const user = Array.isArray(userDataRaw)
+            ? userDataRaw[0]
+            : userDataRaw;
+
+          let avatarUrl = "https://randomuser.me/api/portraits/men/32.jpg"; // Default
+
+          // Agar backenddan rasm kelsa, unga to'liq URL ulaymiz
+          if (user.image_url) {
+            avatarUrl = `https://nt-gym-api.it-mahalla.uz/uploads/${user.image_url}`;
+          }
+
+          const fullName = `${user.first_name || ""} ${
+            user.last_name || ""
+          }`.trim();
+
+          setUserProfile({
+            name: fullName || user.phone || "User",
+            avatar: avatarUrl,
+          });
+        }
+
+        // -- Notification sonini hisoblash --
+        let count = 0;
+
+        // To'lovlar soni
+        if (paymentsRes.ok) {
+          const payments = await paymentsRes.json();
+          if (Array.isArray(payments)) count += payments.length;
+        }
+
+        // Davomat soni (Notifications page da slice(0,10) qilgan edik)
+        let attendanceArr = [];
+        if (attendanceRes.ok) {
+          attendanceArr = await attendanceRes.json();
+          if (Array.isArray(attendanceArr)) {
+            // Oxirgi 10 ta tashrif + Streak xabari (agar bo'lsa)
+            const recentVisits = attendanceArr.slice(0, 10).length;
+            count += recentVisits;
+            if (attendanceArr.length >= 3) count += 1; // Streak uchun +1
+          }
+        }
+
+        // Statik xabarlar (Notifications sahifasida qo'lda qo'shganimiz uchun)
+        // 1. Kelmaganlik haqida, 2. Profil, 3. Parol
+        count += 3;
+
+        setNotifCount(count);
       } catch (error) {
-        console.error("Profile ma'lumotlarini olishda xatolik:", error);
+        console.error("Navbar data error:", error);
+      } finally {
         setLoading(false);
       }
     };
 
-    fetchUserProfile();
+    initData();
   }, []);
-
-  const handleLogoClick = () => {
-    navigate("/users");
-  };
-
-  const handleNotificationClick = () => {
-    navigate("/users/notifications");
-  };
-
-  const handleProfileClick = () => {
-    navigate("/users/profile");
-  };
 
   return (
     <NavbarContainer>
       <NavbarContent>
-        <LogoSection onClick={handleLogoClick}>
+        <LogoSection onClick={() => navigate("/users")}>
           <LogoIcon>
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
               <circle
@@ -93,7 +166,7 @@ const Navbar: React.FC<NavbarProps> = ({ unreadCount = 0 }) => {
         </LogoSection>
 
         <RightSection>
-          <NotificationButton onClick={handleNotificationClick}>
+          <NotificationButton onClick={() => navigate("/users/notifications")}>
             <svg
               width="24"
               height="24"
@@ -114,14 +187,16 @@ const Navbar: React.FC<NavbarProps> = ({ unreadCount = 0 }) => {
                 strokeLinejoin="round"
               />
             </svg>
-            {unreadCount > 0 && (
+
+            {/* Dinamik hisoblangan son */}
+            {notifCount > 0 && (
               <NotificationBadge>
-                {unreadCount > 9 ? "9+" : unreadCount}
+                {notifCount > 99 ? "99+" : notifCount}
               </NotificationBadge>
             )}
           </NotificationButton>
 
-          <ProfileButton onClick={handleProfileClick}>
+          <ProfileButton onClick={() => navigate("/users/profile")}>
             {loading ? (
               <ProfileImage
                 src="https://randomuser.me/api/portraits/men/32.jpg"
@@ -129,8 +204,16 @@ const Navbar: React.FC<NavbarProps> = ({ unreadCount = 0 }) => {
               />
             ) : (
               <ProfileImage
-                src={userProfile?.avatar || "https://randomuser.me/api/portraits/men/32.jpg"}
+                src={
+                  userProfile?.avatar ||
+                  "https://randomuser.me/api/portraits/men/32.jpg"
+                }
                 alt={userProfile?.name || "User"}
+                // Agar rasm yuklanmasa default rasmga o'tish
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    "https://randomuser.me/api/portraits/men/32.jpg";
+                }}
               />
             )}
           </ProfileButton>
