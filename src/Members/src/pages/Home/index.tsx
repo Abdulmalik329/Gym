@@ -28,8 +28,7 @@ import {
   AttendanceCard,
   AttendanceHeader,
   StreakBadge,
-  VisitsCount,
-  VisitsNumber,
+  // TUZATILDI: VisitsCount va VisitsNumber bu yerdan olib tashlandi
   WeekGrid,
   PaymentHistoryCard,
   PaymentHeader,
@@ -61,7 +60,7 @@ const decodeJwt = (token: string) => {
         .atob(base64)
         .split("")
         .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
+        .join(""),
     );
     return JSON.parse(jsonPayload);
   } catch (error) {
@@ -93,7 +92,7 @@ const Home = () => {
             `https://nt-gym-api.it-mahalla.uz/api/reports/member?userId=${userId}`,
             {
               headers: { Authorization: `Bearer ${token}` },
-            }
+            },
           ),
           fetch(`https://nt-gym-api.it-mahalla.uz/api/membership-plans`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -115,14 +114,11 @@ const Home = () => {
         // 1. Ism (Reportdan)
         const displayName = reportData?.user?.name || "Foydalanuvchi";
 
-        // 2. Plan va Features (Reportdagi membership dan olamiz yoki Plans dan topamiz)
-        // Agar reportData.perks bo'lsa, o'shani ishlatamiz (Siz yuborgan JSON da perks bor ekan)
+        // 2. Plan va Features
         let features: string[] = [];
         if (reportData?.perks && Array.isArray(reportData.perks)) {
-          // Perks obyekti ichidan title larni olamiz
           features = reportData.perks.map((p: any) => p.title);
         } else {
-          // Fallback: Plan nomiga qarab plans ro'yxatidan qidirish
           const planName = reportData?.membership?.plan;
           const foundPlan = plansData.find((p: any) => p.name === planName);
           if (foundPlan) {
@@ -133,16 +129,15 @@ const Home = () => {
         }
 
         // 3. Davomat (Week Object)
-        // JSON dagi structure: { "M": false, "T": true, ... }
         const attendanceWeek = reportData?.attendance?.week || {};
 
         setData({
           user: {
             name: displayName,
             bio: "Exciting working out",
-            weight: 0, // Agar reportda kelmasa 0 turadi
+            weight: 0,
             height: 0,
-            phone: reportData?.user?.email || "", // Emailni phone o'rniga ko'rsatish mumkin vaqtincha
+            phone: reportData?.user?.email || "",
             address: "Tashkent",
           },
           membership: {
@@ -154,7 +149,7 @@ const Home = () => {
           attendance: {
             totalVisits: reportData?.attendance?.totalVisits || 0,
             streak: reportData?.attendance?.streak || 0,
-            week: attendanceWeek, // <--- Mana shu haftalik ma'lumot
+            week: attendanceWeek,
           },
           stats: reportData?.stats || { workouts: 0, calories: 0, hours: 0 },
           payments: Array.isArray(paymentsData) ? paymentsData : [],
@@ -179,7 +174,6 @@ const Home = () => {
     );
   if (!data) return null;
 
-  // Hafta kunlarini tartiblash uchun yordamchi massiv
   const weekDays = [
     { key: "M", label: "Du" },
     { key: "T", label: "Se" },
@@ -201,7 +195,6 @@ const Home = () => {
 
       <HeroImage backgroundImage="https://images.unsplash.com/photo-1599058917212-d750089bc07e">
         <WorkoutBadge>
-          {/* O'rtada streak (ketma-ket) kunlarni chiqaramiz */}
           <BadgeNumber>{data.attendance.streak}</BadgeNumber>
           <BadgeText>KUN STREAK</BadgeText>
         </WorkoutBadge>
@@ -263,7 +256,6 @@ const Home = () => {
                 {data.payments.length > 0 ? (
                   data.payments.map((p: any, i: number) => (
                     <TableRow key={i}>
-                      {/* Agar payments API dan sana kelsa o'shani, yo'qsa reportdagi formatni */}
                       <TableCell>
                         {p.date
                           ? p.date
@@ -306,7 +298,6 @@ const Home = () => {
               </StreakBadge>
             </AttendanceHeader>
 
-            {/* --- YANGI HAFTALIK DAVOMAT LOGIKASI --- */}
             <WeekGrid
               style={{
                 flexDirection: "row",
@@ -315,7 +306,7 @@ const Home = () => {
               }}
             >
               {weekDays.map((day) => {
-                const isActive = data.attendance.week[day.key]; // true yoki false
+                const isActive = data.attendance.week[day.key];
                 return (
                   <div
                     key={day.key}
@@ -331,7 +322,7 @@ const Home = () => {
                         width: "36px",
                         height: "36px",
                         borderRadius: "50%",
-                        backgroundColor: isActive ? "#2b8feb" : "#1a2634", // Faol bo'lsa ko'k
+                        backgroundColor: isActive ? "#2b8feb" : "#1a2634",
                         border: isActive ? "none" : "1px solid #2a3b4c",
                         display: "flex",
                         alignItems: "center",
@@ -346,7 +337,6 @@ const Home = () => {
                     >
                       {day.label}
                     </div>
-                    {/* Pastidagi nuqta indikatori */}
                     <div
                       style={{
                         width: "6px",
@@ -363,7 +353,6 @@ const Home = () => {
         </LeftColumn>
 
         <RightColumn>
-          {/* --- QULAYLIKLAR (PERKS) --- */}
           <PerksCard>
             <PerksTitle>Qulayliklar</PerksTitle>
             <PerksList>
@@ -380,7 +369,7 @@ const Home = () => {
                     >
                       ✨ {feature}
                     </p>
-                  )
+                  ),
                 )
               ) : (
                 <p style={{ color: "#777", fontSize: "12px" }}>Ma'lumot yo'q</p>
@@ -447,7 +436,11 @@ const Home = () => {
             ))
           ) : (
             <p
-              style={{ color: "#888", gridColumn: "1/-1", textAlign: "center" }}
+              style={{
+                color: "#888",
+                gridColumn: "1/-1",
+                textAlign: "center",
+              }}
             >
               Tariflar topilmadi
             </p>

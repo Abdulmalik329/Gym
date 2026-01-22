@@ -14,23 +14,6 @@ import {
 } from "./Notificate.styled";
 import { useNavigate } from "react-router-dom";
 
-// --- YORDAMCHI: Token decode ---
-const decodeJwt = (token: string) => {
-  try {
-    return JSON.parse(
-      decodeURIComponent(
-        window
-          .atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))
-          .split("")
-          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-          .join("")
-      )
-    );
-  } catch (e) {
-    return null;
-  }
-};
-
 // Notification interface
 interface NotificationItem {
   id: number;
@@ -51,8 +34,7 @@ const Notifications = () => {
       const token = localStorage.getItem("token");
       if (!token) return navigate("/login");
 
-      const decoded = decodeJwt(token);
-      const userId = decoded?.id || decoded?.sub || decoded?.user?.id;
+      // TUZATILDI: Bu yerda ishlatilmayotgan decodeJwt va userId o'chirib tashlandi.
 
       try {
         // Ma'lumotlarni olish
@@ -115,7 +97,6 @@ const Notifications = () => {
         }
 
         // 3. KELMAGAN KUNLAR (Danger) - Mock
-        // Haqiqiy loyihada buni backend hisoblab berishi kerak, hozircha qo'lda qo'shamiz
         generated.push({
           id: 4001,
           type: "danger",
