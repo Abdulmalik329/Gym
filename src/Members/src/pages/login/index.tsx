@@ -105,14 +105,14 @@ const Login: React.FC = () => {
 
       <Overlay />
 
-      {/* LOGIN */}
+
       <LoginCard as="form" onSubmit={handleLogin}>
         <Title>Welcome Back</Title>
         <Subtitle>Please login to your account</Subtitle>
 
         <Input
           name="email"
-          placeholder="Email or Phone"
+          placeholder="Email"
           onChange={handleChange}
         />
 

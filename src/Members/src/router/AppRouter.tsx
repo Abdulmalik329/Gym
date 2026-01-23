@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, Navigate } from "react-router-dom"; // 1. Navigate ni import qiling
 import MainLayout from "../layout/LayoutMain";
 import EditProfile from "../pages/edit-profile";
 
@@ -13,7 +13,10 @@ const AppRouter = () => {
   return (
     <Suspense fallback={<p>Loading...</p>}>
       <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
+
         <Route path="/login" element={<Login />} />
+x
         <Route path="/users" element={<MainLayout />}>
           <Route index element={<Home />} />
           <Route path="notifications" element={<Notificate />} />
@@ -21,6 +24,7 @@ const AppRouter = () => {
           <Route path="profile/edit" element={<EditProfile />} />
           <Route path="profile/change-password" element={<ChangePassword />} />
         </Route>
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Suspense>
   );
