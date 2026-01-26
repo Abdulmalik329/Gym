@@ -9,3 +9,10 @@
 body{
     background-color: #101922;
 }
+
+.container {
+   max-width: 1395px;
+   width: 100%;
+   padding: 0 16px;
+   margin: 0 auto;
+}

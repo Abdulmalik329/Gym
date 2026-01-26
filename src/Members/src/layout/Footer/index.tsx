@@ -14,8 +14,8 @@ import {
 
 const Footer: React.FC = () => {
   return (
-    <FooterContainer>
-      <FooterContent>
+    <FooterContainer >
+      <FooterContent >
         <LogoSection>
           <div
             style={{

@@ -145,7 +145,7 @@ const Notifications = () => {
   if (loading) return <Container>Yuklanmoqda...</Container>;
 
   return (
-    <Container>
+    <Container >
       <Header>
         <Title>Bildirishnomalar ({notifications.length})</Title>
         <ClearButton onClick={() => setNotifications([])}>Tozalash</ClearButton>

@@ -204,12 +204,12 @@ const Profile = () => {
         </Grid>
 
         <Actions>
-          <Button onClick={() => navigate("/users/profile/edit")}>
+          <Button onClick={() => navigate("/profile/profile/edit")}>
             Edit Profile
           </Button>
           <Button
             outline
-            onClick={() => navigate("/users/profile/change-password")}
+            onClick={() => navigate("/profile/profile/change-password")}
           >
             Change Password
           </Button>

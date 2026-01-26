@@ -1,5 +1,5 @@
 import styled from "styled-components";
-
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 /* Asosiy wrapper */
 export const Wrapper = styled.div`
   position: relative;
@@ -82,6 +82,36 @@ export const Input = styled.input`
   &:focus {
     background: #fff;
     border-color: #2f80ed;
+  }
+`;
+export const PasswordWrapper = styled.div`
+  position: relative;
+  width: 100%;
+  margin-bottom: 15px; /* Input marginini shu yerga ko'chirdik */
+`;
+
+export const ToggleIcon = styled.button`
+  /* Button qildik, click ishlashi uchun qulay */
+  position: absolute;
+  top: 50%;
+   right: 15px;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #a0a0a0;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+
+  &:hover {
+    color: #2f80ed;
+  }
+
+  &:focus {
+    outline: none;
   }
 `;
 

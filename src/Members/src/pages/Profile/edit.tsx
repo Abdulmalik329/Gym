@@ -162,10 +162,7 @@ const EditProfile = () => {
   return (
     <Wrapper>
       <Header>
-        <AvatarWrapper>
-          <img src={form.avatar} alt="avatar" />
-          <Camera>📷</Camera>
-        </AvatarWrapper>
+
       </Header>
 
       <Form>

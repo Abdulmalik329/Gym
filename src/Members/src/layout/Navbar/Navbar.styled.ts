@@ -1,7 +1,6 @@
 import styled from "styled-components";
 
 export const NavbarContainer = styled.nav`
-  width: 100%;
   background-color: #1a2634;
   border-bottom: 1px solid #2a3b4c;
   position: sticky;
@@ -11,7 +10,7 @@ export const NavbarContainer = styled.nav`
 `;
 
 export const NavbarContent = styled.div`
-  max-width: 1440px;
+  max-width: 1395px;
   margin: 0 auto;
   padding: 16px 80px;
   display: flex;
@@ -34,13 +33,6 @@ export const LogoSection = styled.div`
   cursor: pointer;
   transition: transform 0.3s ease;
 
-  &:hover {
-    transform: translateY(-2px);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
 `;
 
 export const LogoIcon = styled.div`
@@ -48,7 +40,6 @@ export const LogoIcon = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.3s ease;
 
   ${LogoSection}:hover & {
     color: #2380d8;
@@ -63,7 +54,6 @@ export const LogoText = styled.div`
 
   span {
     color: #2b8feb;
-    transition: color 0.3s ease;
   }
 
   ${LogoSection}:hover span {
@@ -92,17 +82,14 @@ export const NotificationButton = styled.button`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
   color: #8b98a8;
 
   &:hover {
     background-color: #3a4b5c;
     color: #ffffff;
-    transform: translateY(-2px);
   }
 
   &:active {
-    transform: translateY(0);
   }
 
   svg {
@@ -145,12 +132,10 @@ export const ProfileButton = styled.button`
   border: none;
   padding: 0;
   cursor: pointer;
-  transition: all 0.3s ease;
   border-radius: 50%;
   overflow: hidden;
 
   &:hover {
-    transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(43, 143, 235, 0.3);
   }
 

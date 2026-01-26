@@ -1,9 +1,11 @@
 import styled from "styled-components";
 
 export const Wrapper = styled.div`
-  min-height: 100vh;
+  max-width: 1265px;
+  width: 100%;
+  padding: 0 16px;
+  margin: 0 auto;
   color: #fff;
-  
 `;
 
 export const Header = styled.div`

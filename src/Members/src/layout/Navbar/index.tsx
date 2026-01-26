@@ -85,7 +85,7 @@ const Navbar: React.FC = () => {
             ? userDataRaw[0]
             : userDataRaw;
 
-          let avatarUrl = "https://randomuser.me/api/portraits/men/32.jpg"; // Default
+          let avatarUrl = "https://th.bing.com/th/id/R.ca1aa447d07684a6edc3067c6cf35b41?rik=vDTxmCKREnh4sQ&pid=ImgRaw&r=0"; // Default
 
           // Agar backenddan rasm kelsa, unga to'liq URL ulaymiz
           if (user.image_url) {
@@ -140,8 +140,8 @@ const Navbar: React.FC = () => {
 
   return (
     <NavbarContainer>
-      <NavbarContent>
-        <LogoSection onClick={() => navigate("/users")}>
+      <NavbarContent className="container">
+        <LogoSection onClick={() => navigate("/profile")}>
           <LogoIcon>
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
               <circle
@@ -166,7 +166,9 @@ const Navbar: React.FC = () => {
         </LogoSection>
 
         <RightSection>
-          <NotificationButton onClick={() => navigate("/users/notifications")}>
+          <NotificationButton
+            onClick={() => navigate("/profile/notifications")}
+          >
             <svg
               width="24"
               height="24"
@@ -196,23 +198,22 @@ const Navbar: React.FC = () => {
             )}
           </NotificationButton>
 
-          <ProfileButton onClick={() => navigate("/users/profile")}>
+          <ProfileButton onClick={() => navigate("/profile/profile")}>
             {loading ? (
               <ProfileImage
-                src="https://randomuser.me/api/portraits/men/32.jpg"
+                src="https://th.bing.com/th/id/R.ca1aa447d07684a6edc3067c6cf35b41?rik=vDTxmCKREnh4sQ&pid=ImgRaw&r=0"
                 alt="Loading..."
               />
             ) : (
               <ProfileImage
                 src={
                   userProfile?.avatar ||
-                  "https://randomuser.me/api/portraits/men/32.jpg"
+                  "https://th.bing.com/th/id/R.ca1aa447d07684a6edc3067c6cf35b41?rik=vDTxmCKREnh4sQ&pid=ImgRaw&r=0"
                 }
                 alt={userProfile?.name || "User"}
-                // Agar rasm yuklanmasa default rasmga o'tish
                 onError={(e) => {
                   (e.target as HTMLImageElement).src =
-                    "https://randomuser.me/api/portraits/men/32.jpg";
+                    "https://th.bing.com/th/id/R.ca1aa447d07684a6edc3067c6cf35b41?rik=vDTxmCKREnh4sQ&pid=ImgRaw&r=0";
                 }}
               />
             )}

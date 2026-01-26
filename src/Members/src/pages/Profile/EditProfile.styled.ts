@@ -1,6 +1,10 @@
 import styled from "styled-components";
 
 export const Wrapper = styled.div`
+  max-width: 1265px;
+  width: 100%;
+  padding: 0 16px;
+  margin: 0 auto;
   min-height: 100vh;
   color: #fff;
 `;

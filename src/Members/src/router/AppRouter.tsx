@@ -1,13 +1,13 @@
 import { lazy, Suspense } from "react";
 import { Route, Routes, Navigate } from "react-router-dom"; // 1. Navigate ni import qiling
 import MainLayout from "../layout/LayoutMain";
-import EditProfile from "../pages/edit-profile";
 
 const Home = lazy(() => import("../pages/Home"));
 const Notificate = lazy(() => import("../pages/Notificate"));
 const Profile = lazy(() => import("../pages/Profile"));
 const ChangePassword = lazy(() => import("../pages/change-password"));
 const Login = lazy(() => import("../pages/login"));
+const EditProfile = lazy(() => import("../pages/Profile/edit"))
 
 const AppRouter = () => {
   return (
@@ -16,8 +16,8 @@ const AppRouter = () => {
         <Route path="/" element={<Navigate to="/login" replace />} />
 
         <Route path="/login" element={<Login />} />
-x
-        <Route path="/users" element={<MainLayout />}>
+
+        <Route path="/profile" element={<MainLayout />}>
           <Route index element={<Home />} />
           <Route path="notifications" element={<Notificate />} />
           <Route path="profile" element={<Profile />} />

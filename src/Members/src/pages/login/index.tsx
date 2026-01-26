@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { FaEye, FaEyeSlash } from "react-icons/fa"; 
 import bgVideo from "../../assets/videos/gym-bg.mp4";
 
 import {
@@ -12,9 +13,10 @@ import {
   Input,
   Button,
   BottomLinks,
+  PasswordWrapper,
+  ToggleIcon,
 } from "./Login.styled";
 
-/* JWT decode */
 const decodeJwt = (token: string) => {
   try {
     const base64Url = token.split(".")[1];
@@ -23,7 +25,7 @@ const decodeJwt = (token: string) => {
       atob(base64)
         .split("")
         .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
+        .join(""),
     );
     return JSON.parse(jsonPayload);
   } catch {
@@ -34,6 +36,9 @@ const decodeJwt = (token: string) => {
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+
+  const [showPassword, setShowPassword] = useState(false);
+
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -64,7 +69,7 @@ const Login: React.FC = () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
-        }
+        },
       );
 
       const data = await res.json();
@@ -86,10 +91,11 @@ const Login: React.FC = () => {
       }
 
       const role = (data?.user?.role || "").toLowerCase();
-      if (role.includes("admin")) navigate("/admin/dashboard");
-      else if (role.includes("manager")) navigate("/manager/dashboard");
-      else navigate("/users");
-    } catch (err) {
+      if (role.includes("SUPER_ADMIN")) navigate("/admin/dashboard");
+      else if (role.includes("GYM_MANAGER"))
+           navigate("/manager/dashboard");
+      else navigate("/profile");
+    } catch (err) {  
       alert("Server xatosi");
       console.error(err);
     } finally {
@@ -105,23 +111,31 @@ const Login: React.FC = () => {
 
       <Overlay />
 
-
       <LoginCard as="form" onSubmit={handleLogin}>
         <Title>Welcome Back</Title>
         <Subtitle>Please login to your account</Subtitle>
 
-        <Input
-          name="email"
-          placeholder="Email"
-          onChange={handleChange}
-        />
+        <Input name="email" placeholder="Email" onChange={handleChange} />
 
-        <Input
-          type="password"
-          name="password"
-          placeholder="Password"
-          onChange={handleChange}
-        />
+        {/* Parol qismi */}
+        <PasswordWrapper>
+          <Input
+            // Statega qarab type o'zgaradi
+            type={showPassword ? "text" : "password"}
+            name="password"
+            placeholder="Password"
+            onChange={handleChange}
+            // Ikonka ustiga yozuv chiqib ketmasligi uchun o'ngdan padding
+            style={{ paddingRight: "40px", marginBottom: 0 }}
+          />
+
+          <ToggleIcon
+            type="button" 
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? <FaEyeSlash /> : <FaEye />}
+          </ToggleIcon>
+        </PasswordWrapper>
 
         <Button type="submit" disabled={loading}>
           {loading ? "Checking..." : "LOGIN"}
