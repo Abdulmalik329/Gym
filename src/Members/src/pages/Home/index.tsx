@@ -4,7 +4,9 @@ import {
   MainContent,
   LeftColumn,
   RightColumn,
-  LoadingTitle,
+  SkeletonHeaderWrapper,
+  SkeletonBox,
+  SkeletonGrid,
 } from "./Home.styled";
 import WelcomeHeader from "./components/WelcomeHeader";
 import HeroSection from "./components/HeroSection";
@@ -18,12 +20,46 @@ import PlansSection from "./components/PlansSection";
 const Home = () => {
   const { data, loading } = useHomeData();
 
+  // --- LOADING HOLATI (SKELETON) ---
   if (loading)
     return (
-      <Container>
-        <LoadingTitle>Yuklanmoqda...</LoadingTitle>
+      <Container className="container">
+        <SkeletonHeaderWrapper>
+          <SkeletonBox $width="40%" $height="40px" />
+          <SkeletonBox $width="25%" $height="20px" />
+        </SkeletonHeaderWrapper>
+
+        <SkeletonBox $height="280px" $mb="32px" />
+
+        <SkeletonGrid>
+          <SkeletonBox $height="120px" />
+          <SkeletonBox $height="120px" />
+          <SkeletonBox $height="120px" />
+        </SkeletonGrid>
+
+        <SkeletonBox $height="100px" $mb="32px" />
+
+        <MainContent>
+          <LeftColumn>
+            <SkeletonBox $height="250px" />
+            <SkeletonBox $height="350px" />
+          </LeftColumn>
+          <RightColumn>
+            <SkeletonBox $height="600px" />
+          </RightColumn>
+        </MainContent>
+
+        <div style={{ marginTop: "32px" }}>
+          <SkeletonBox $width="200px" $height="30px" $mb="20px" />
+          <SkeletonGrid>
+            <SkeletonBox $height="300px" />
+            <SkeletonBox $height="300px" />
+            <SkeletonBox $height="300px" />
+          </SkeletonGrid>
+        </div>
       </Container>
     );
+
   if (!data) return null;
 
   return (
@@ -36,7 +72,11 @@ const Home = () => {
       <MainContent>
         <LeftColumn>
           <PaymentHistory payments={data.payments} />
-          <AttendanceChart attendance={data.attendance} />
+
+          <AttendanceChart
+            records={data.attendance.records}
+            totalVisits={data.attendance.totalVisits}
+          />
         </LeftColumn>
         <RightColumn>
           <SidebarWidgets

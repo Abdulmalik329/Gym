@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
+// JWT dekoder
 const decodeJwt = (token: string) => {
   try {
     const base64Url = token.split(".")[1];
@@ -37,18 +38,53 @@ export const useHomeData = () => {
       }
 
       try {
-        const [reportRes, plansRes, paymentsRes] = await Promise.all([
-          fetch(
-            `https://nt-gym-api.it-mahalla.uz/api/reports/member?userId=${userId}`,
-            { headers: { Authorization: `Bearer ${token}` } },
-          ),
-          fetch(`https://nt-gym-api.it-mahalla.uz/api/membership-plans`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch(`https://nt-gym-api.it-mahalla.uz/api/payments`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
+        // 1-QADAM: User ma'lumotlarini olish (gymId ni aniqlash uchun)
+        const userRes = await fetch(
+          `https://nt-gym-api.it-mahalla.uz/api/users/${userId}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+
+        if (userRes.status === 401) {
+          localStorage.clear();
+          return navigate("/login");
+        }
+
+        const userDataRaw = userRes.ok ? await userRes.json() : null;
+        const userData = Array.isArray(userDataRaw)
+          ? userDataRaw[0]
+          : userDataRaw;
+
+        // Gym ID ni olish
+        const gymId = userData?.gymId || userData?.gym_id || userData?.gym?.id;
+
+        // Planlar URLini tayyorlash
+        const plansUrl = gymId
+          ? `https://nt-gym-api.it-mahalla.uz/api/membership-plans?gym_id=${gymId}`
+          : `https://nt-gym-api.it-mahalla.uz/api/membership-plans`;
+
+        // 2-QADAM: Asosiy ma'lumotlarni parallel yuklash
+        const [reportRes, plansRes, paymentsRes, attendanceRes] =
+          await Promise.all([
+            // Dashboard statistikasi
+            fetch(
+              `https://nt-gym-api.it-mahalla.uz/api/reports/member?userId=${userId}`,
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+            // Tariflar
+            fetch(plansUrl, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            // To'lovlar tarixi
+            fetch(
+              `https://nt-gym-api.it-mahalla.uz/api/payments?user_id=${userId}`,
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+            // Davomat tarixi (RO'YXAT)
+            fetch(
+              `https://nt-gym-api.it-mahalla.uz/api/attendances?userId=${userId}`,
+              { headers: { Authorization: `Bearer ${token}` } },
+            ),
+          ]);
 
         if (reportRes.status === 401) {
           localStorage.clear();
@@ -59,13 +95,26 @@ export const useHomeData = () => {
         const plansData = plansRes.ok ? await plansRes.json() : [];
         const paymentsData = paymentsRes.ok ? await paymentsRes.json() : [];
 
+        // Davomat ro'yxatini JSON ga o'tkazish
+        const attendanceList = attendanceRes.ok
+          ? await attendanceRes.json()
+          : [];
+
+        // Planlarni unique qilish (takrorlanmaslik uchun)
+        const uniquePlans = Array.isArray(plansData)
+          ? Array.from(
+              new Map(plansData.map((item: any) => [item.id, item])).values(),
+            )
+          : [];
+
+        // Userning planini va imkoniyatlarini (features) aniqlash
         const displayName = reportData?.user?.name || "Foydalanuvchi";
         let features: string[] = [];
         if (reportData?.perks && Array.isArray(reportData.perks)) {
           features = reportData.perks.map((p: any) => p.title);
         } else {
           const planName = reportData?.membership?.plan;
-          const foundPlan = plansData.find((p: any) => p.name === planName);
+          const foundPlan = uniquePlans.find((p: any) => p.name === planName);
           if (foundPlan) {
             if (Array.isArray(foundPlan.features))
               features = foundPlan.features;
@@ -73,8 +122,7 @@ export const useHomeData = () => {
           }
         }
 
-        const attendanceWeek = reportData?.attendance?.week || {};
-
+        // MA'LUMOTLARNI YIG'ISH
         setData({
           user: {
             name: displayName,
@@ -90,16 +138,17 @@ export const useHomeData = () => {
           attendance: {
             totalVisits: reportData?.attendance?.totalVisits || 0,
             streak: reportData?.attendance?.streak || 0,
-            week: attendanceWeek,
+            // API dan kelgan aniq ro'yxatni shu yerga beramiz
+            records: Array.isArray(attendanceList) ? attendanceList : [],
           },
           stats: reportData?.stats || { workouts: 0, calories: 0, hours: 0 },
           payments: Array.isArray(paymentsData) ? paymentsData : [],
-          plans: Array.isArray(plansData) ? plansData : [],
+          plans: uniquePlans,
         });
 
         setLoading(false);
       } catch (e) {
-        console.error(e);
+        console.error("Fetch error:", e);
         setLoading(false);
       }
     };

@@ -1,13 +1,7 @@
-import { Route, Routes } from "react-router-dom";
 import AppRouter from "./src/router/AppRouter";
 
-const MembersApp = () => {
-  return (
-    <Routes>
-      <Route path="/*" element={<AppRouter />} />
-      
-    </Routes>
-  );
-}
+const MembersApp: React.FC = () => {
+  return <AppRouter />;
+};
 
-export default MembersApp
+export default MembersApp;

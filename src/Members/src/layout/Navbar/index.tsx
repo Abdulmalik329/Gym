@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom"; // useLocation qo'shildi
 import {
   NavbarContainer,
   NavbarContent,
@@ -22,7 +22,7 @@ const decodeJwt = (token: string) => {
         .atob(base64)
         .split("")
         .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
+        .join(""),
     );
     return JSON.parse(jsonPayload);
   } catch (error) {
@@ -37,6 +37,7 @@ interface UserProfile {
 
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation(); // Hozirgi manzilni aniqlash uchun
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [notifCount, setNotifCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -52,82 +53,52 @@ const Navbar: React.FC = () => {
       const decoded = decodeJwt(token);
       const userId = decoded?.id || decoded?.sub || decoded?.user?.id;
 
-      if (!userId) return;
-
       try {
         // --- 1. USER MA'LUMOTINI OLISH (Avatar uchun) ---
-        const userRes = await fetch(
-          `https://nt-gym-api.it-mahalla.uz/api/users/${userId}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        if (userId) {
+          const userRes = await fetch(
+            `https://nt-gym-api.it-mahalla.uz/api/users/${userId}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
 
-        // --- 2. NOTIFICATIONLAR SONINI HISOBLASH ---
-        // Notifications sahifasidagi mantiq bilan bir xil bo'lishi kerak
-        const paymentsRes = await fetch(
-          `https://nt-gym-api.it-mahalla.uz/api/payments`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        const attendanceRes = await fetch(
-          `https://nt-gym-api.it-mahalla.uz/api/attendances`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+          if (userRes.ok) {
+            const userDataRaw = await userRes.json();
+            const user = Array.isArray(userDataRaw)
+              ? userDataRaw[0]
+              : userDataRaw;
 
-        // -- User Profilini o'rnatish --
-        if (userRes.ok) {
-          const userDataRaw = await userRes.json();
-          const user = Array.isArray(userDataRaw)
-            ? userDataRaw[0]
-            : userDataRaw;
+            let avatarUrl =
+              "https://th.bing.com/th/id/R.ca1aa447d07684a6edc3067c6cf35b41?rik=vDTxmCKREnh4sQ&pid=ImgRaw&r=0";
+            if (user.image_url) {
+              avatarUrl = `https://nt-gym-api.it-mahalla.uz/uploads/${user.image_url}`;
+            }
 
-          let avatarUrl = "https://th.bing.com/th/id/R.ca1aa447d07684a6edc3067c6cf35b41?rik=vDTxmCKREnh4sQ&pid=ImgRaw&r=0"; // Default
-
-          // Agar backenddan rasm kelsa, unga to'liq URL ulaymiz
-          if (user.image_url) {
-            avatarUrl = `https://nt-gym-api.it-mahalla.uz/uploads/${user.image_url}`;
-          }
-
-          const fullName = `${user.first_name || ""} ${
-            user.last_name || ""
-          }`.trim();
-
-          setUserProfile({
-            name: fullName || user.phone || "User",
-            avatar: avatarUrl,
-          });
-        }
-
-        // -- Notification sonini hisoblash --
-        let count = 0;
-
-        // To'lovlar soni
-        if (paymentsRes.ok) {
-          const payments = await paymentsRes.json();
-          if (Array.isArray(payments)) count += payments.length;
-        }
-
-        // Davomat soni (Notifications page da slice(0,10) qilgan edik)
-        let attendanceArr = [];
-        if (attendanceRes.ok) {
-          attendanceArr = await attendanceRes.json();
-          if (Array.isArray(attendanceArr)) {
-            // Oxirgi 10 ta tashrif + Streak xabari (agar bo'lsa)
-            const recentVisits = attendanceArr.slice(0, 10).length;
-            count += recentVisits;
-            if (attendanceArr.length >= 3) count += 1; // Streak uchun +1
+            setUserProfile({
+              name:
+                `${user.first_name || ""} ${user.last_name || ""}`.trim() ||
+                "User",
+              avatar: avatarUrl,
+            });
           }
         }
 
-        // Statik xabarlar (Notifications sahifasida qo'lda qo'shganimiz uchun)
-        // 1. Kelmaganlik haqida, 2. Profil, 3. Parol
-        count += 3;
+        // --- 2. NOTIFICATIONLAR SONINI OLISH (TUZATILDI) ---
+        const countRes = await fetch(
+          `https://nt-gym-api.it-mahalla.uz/api/notifications/unread-count`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
 
-        setNotifCount(count);
+        if (countRes.ok) {
+          const countData = await countRes.json();
+          // API formatiga qarab: countData o'zi son yoki { count: X } bo'lishi mumkin
+          setNotifCount(
+            typeof countData === "number" ? countData : countData.count || 0,
+          );
+        }
       } catch (error) {
         console.error("Navbar data error:", error);
       } finally {
@@ -136,12 +107,21 @@ const Navbar: React.FC = () => {
     };
 
     initData();
-  }, []);
+
+    // Har 30 soniyada sonni yangilab turish (ixtiyoriy, lekin foydali)
+    const interval = setInterval(initData, 30000);
+    return () => clearInterval(interval);
+  }, [location.pathname]); // Sahifa o'zgarganda ham son yangilanadi
+
+  // Change Password sahifasida Navbar ko'rinmasligi uchun
+  if (location.pathname === "/profile/change-password") {
+    return null;
+  }
 
   return (
     <NavbarContainer>
       <NavbarContent className="container">
-        <LogoSection onClick={() => navigate("/profile")}>
+        <LogoSection onClick={() => navigate("/users")}>
           <LogoIcon>
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
               <circle
@@ -167,7 +147,7 @@ const Navbar: React.FC = () => {
 
         <RightSection>
           <NotificationButton
-            onClick={() => navigate("/profile/notifications")}
+            onClick={() => navigate("/users/notifications")}
           >
             <svg
               width="24"
@@ -190,7 +170,6 @@ const Navbar: React.FC = () => {
               />
             </svg>
 
-            {/* Dinamik hisoblangan son */}
             {notifCount > 0 && (
               <NotificationBadge>
                 {notifCount > 99 ? "99+" : notifCount}
@@ -198,25 +177,18 @@ const Navbar: React.FC = () => {
             )}
           </NotificationButton>
 
-          <ProfileButton onClick={() => navigate("/profile/profile")}>
-            {loading ? (
-              <ProfileImage
-                src="https://th.bing.com/th/id/R.ca1aa447d07684a6edc3067c6cf35b41?rik=vDTxmCKREnh4sQ&pid=ImgRaw&r=0"
-                alt="Loading..."
-              />
-            ) : (
-              <ProfileImage
-                src={
-                  userProfile?.avatar ||
-                  "https://th.bing.com/th/id/R.ca1aa447d07684a6edc3067c6cf35b41?rik=vDTxmCKREnh4sQ&pid=ImgRaw&r=0"
-                }
-                alt={userProfile?.name || "User"}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    "https://th.bing.com/th/id/R.ca1aa447d07684a6edc3067c6cf35b41?rik=vDTxmCKREnh4sQ&pid=ImgRaw&r=0";
-                }}
-              />
-            )}
+          <ProfileButton onClick={() => navigate("/users/profile")}>
+            <ProfileImage
+              src={
+                userProfile?.avatar ||
+                "https://th.bing.com/th/id/R.ca1aa447d07684a6edc3067c6cf35b41?rik=vDTxmCKREnh4sQ&pid=ImgRaw&r=0"
+              }
+              alt={userProfile?.name || "User"}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src =
+                  "https://th.bing.com/th/id/R.ca1aa447d07684a6edc3067c6cf35b41?rik=vDTxmCKREnh4sQ&pid=ImgRaw&r=0";
+              }}
+            />
           </ProfileButton>
         </RightSection>
       </NavbarContent>

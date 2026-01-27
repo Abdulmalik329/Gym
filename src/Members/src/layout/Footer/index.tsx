@@ -13,6 +13,10 @@ import {
 } from "./Footer.styled";
 
 const Footer: React.FC = () => {
+  
+    if (location.pathname === "/profile/change-password") {
+      return null;
+    }
   return (
     <FooterContainer >
       <FooterContent >

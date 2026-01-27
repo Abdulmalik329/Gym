@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast"; // 1. Toastni import qiling
 import {
   Wrapper,
   Card,
@@ -13,19 +14,11 @@ import {
   Button,
 } from "./ChangePassword.styled";
 
-// --- Tokenni decode qilish funksiyasi ---
 const decodeJwt = (token: string) => {
   try {
     const base64Url = token.split(".")[1];
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      window
-        .atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
+    return JSON.parse(window.atob(base64));
   } catch (error) {
     return null;
   }
@@ -39,15 +32,13 @@ const ChangePassword = () => {
   const [data, setData] = useState({
     oldPassword: "",
     newPassword: "",
-    confirmPassword: "", // Yangi qo'shilgan maydon
+    confirmPassword: "",
   });
 
-  // Ko'zchalar (Show/Hide) uchun state
   const [showOld, setShowOld] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // 1. Sahifa yuklanganda ID ni tokendan olish
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -60,7 +51,7 @@ const ChangePassword = () => {
     if (id) {
       setUserId(id);
     } else {
-      alert("Foydalanuvchi aniqlanmadi. Qayta kiring.");
+      toast.error("Foydalanuvchi aniqlanmadi!");
       navigate("/login");
     }
   }, [navigate]);
@@ -72,27 +63,26 @@ const ChangePassword = () => {
   const submit = async () => {
     // Validatsiya
     if (!data.oldPassword || !data.newPassword || !data.confirmPassword) {
-      alert("Iltimos, barcha maydonlarni to'ldiring!");
+      toast.error("Barcha maydonlarni to'ldiring!");
       return;
     }
 
-    // 2. Parollarni solishtirish
     if (data.newPassword !== data.confirmPassword) {
-      alert("Yangi parollar mos kelmadi! Iltimos tekshirib qaytadan kiriting.");
+      toast.error("Yangi parollar mos kelmadi!");
       return;
     }
 
     if (data.newPassword.length < 6) {
-      // Masalan, minimal uzunlik
-      alert("Parol kamida 6 ta belgidan iborat bo'lishi kerak.");
+      toast.error("Parol kamida 6 ta belgidan iborat bo'lsin!");
       return;
     }
 
+    // 2. Loading holatini toasterda ko'rsatish
+    const toastId = toast.loading("Parol yangilanmoqda...");
     setLoading(true);
     const token = localStorage.getItem("token");
 
     try {
-      // 3. Backendga so'rov yuborish
       const response = await fetch(
         `https://nt-gym-api.it-mahalla.uz/api/users/${userId}/change-password`,
         {
@@ -104,24 +94,21 @@ const ChangePassword = () => {
           body: JSON.stringify({
             oldPassword: data.oldPassword,
             newPassword: data.newPassword,
-            // confirmPassword backendga yuborilmaydi, u faqat tekshirish uchun edi
           }),
-        }
+        },
       );
 
       if (response.ok) {
-        alert("Parol muvaffaqiyatli o'zgartirildi!");
+        toast.success("Parol muvaffaqiyatli o'zgartirildi!", { id: toastId });
         navigate("/users/profile");
       } else {
         const errData = await response.json();
-        alert(
-          errData.message ||
-            "Eski parol noto'g'ri kiritildi yoki xatolik yuz berdi."
-        );
+        toast.error(errData.message || "Eski parol noto'g'ri!", {
+          id: toastId,
+        });
       }
     } catch (error) {
-      console.error("Xatolik:", error);
-      alert("Server bilan aloqa yo'q.");
+      toast.error("Server bilan aloqa uzildi!", { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -133,7 +120,6 @@ const ChangePassword = () => {
         <Title>Change Password</Title>
         <Subtitle>Keep your account secure</Subtitle>
 
-        {/* ESKI PAROL */}
         <Field>
           <Label>Old password</Label>
           <InputWrapper>
@@ -150,7 +136,6 @@ const ChangePassword = () => {
           </InputWrapper>
         </Field>
 
-        {/* YANGI PAROL */}
         <Field>
           <Label>New password</Label>
           <InputWrapper>
@@ -167,7 +152,6 @@ const ChangePassword = () => {
           </InputWrapper>
         </Field>
 
-        {/* YANGI PAROLNI TASDIQLASH */}
         <Field>
           <Label>Confirm new password</Label>
           <InputWrapper>
@@ -181,7 +165,7 @@ const ChangePassword = () => {
                 borderColor:
                   data.confirmPassword &&
                   data.newPassword !== data.confirmPassword
-                    ? "red"
+                    ? "#ff4d4d"
                     : "",
               }}
             />
