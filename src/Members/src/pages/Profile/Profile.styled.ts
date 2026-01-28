@@ -1,4 +1,4 @@
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 
 export const Wrapper = styled.div`
   max-width: 1265px;
@@ -157,5 +157,66 @@ export const Button = styled.button<{ outline?: boolean; danger?: boolean }>`
   }
   &:disabled {
     opacity: 0.5;
+  }
+`;
+
+
+
+const shimmer = keyframes`
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+`;
+
+export const SkeletonPulse = styled.div<{
+  width?: string;
+  height?: string;
+  borderRadius?: string;
+  margin?: string;
+}>`
+  display: inline-block;
+  height: ${(props) => props.height || "100%"};
+  width: ${(props) => props.width || "100%"};
+  border-radius: ${(props) => props.borderRadius || "4px"};
+  margin: ${(props) => props.margin || "0"};
+  background: #162f45; /* Asosiy fon rangi (Item rangi bilan bir xilroq) */
+  background-image: linear-gradient(
+    to right,
+    #162f45 0%,
+    #25486a 20%,
+    /* Yaltiraydigan qism rangi */ #162f45 40%,
+    #162f45 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 800px 100%;
+  animation: ${shimmer} 1.2s linear infinite forwards;
+  position: relative;
+`;
+
+// Header Skeletoni (Rasm o'rniga)
+export const SkeletonHeader = styled(Header)`
+  background-image: none;
+  background-color: #1c3a57;
+  position: relative;
+  overflow: hidden;
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    transform: translateX(-100%);
+    background-image: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0,
+      rgba(255, 255, 255, 0.05) 20%,
+      rgba(255, 255, 255, 0.1) 60%,
+      rgba(255, 255, 255, 0)
+    );
+    animation: ${shimmer} 2s infinite;
   }
 `;

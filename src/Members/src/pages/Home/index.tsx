@@ -20,7 +20,6 @@ import PlansSection from "./components/PlansSection";
 const Home = () => {
   const { data, loading } = useHomeData();
 
-  // --- LOADING HOLATI (SKELETON) ---
   if (loading)
     return (
       <Container className="container">

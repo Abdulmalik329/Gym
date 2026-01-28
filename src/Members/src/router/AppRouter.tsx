@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy } from "react";
 import { Route, Routes, Navigate } from "react-router-dom";
 import MainLayout from "../layout/LayoutMain";
 
@@ -10,7 +10,6 @@ const Login = lazy(() => import("../pages/login"));
 
 const AppRouter = () => {
   return (
-    <Suspense fallback={<p>Yuklanmoqda...</p>}>
       <Routes>
         <Route path="login" element={<Login />} />
 
@@ -23,7 +22,6 @@ const AppRouter = () => {
 
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
-    </Suspense>
   );
 };
 

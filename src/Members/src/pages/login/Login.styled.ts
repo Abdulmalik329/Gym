@@ -1,5 +1,4 @@
 import styled from "styled-components";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
 /* Asosiy wrapper */
 export const Wrapper = styled.div`
   position: relative;

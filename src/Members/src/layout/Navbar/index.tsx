@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom"; // useLocation qo'shildi
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   NavbarContainer,
   NavbarContent,
@@ -37,16 +37,16 @@ interface UserProfile {
 
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation(); // Hozirgi manzilni aniqlash uchun
+  const location = useLocation();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [notifCount, setNotifCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+
+  // XATOLIK SABABI: `loading` ishlatilmagani uchun olib tashlandi.
 
   useEffect(() => {
     const initData = async () => {
       const token = localStorage.getItem("token");
       if (!token) {
-        setLoading(false);
         return;
       }
 
@@ -84,7 +84,7 @@ const Navbar: React.FC = () => {
           }
         }
 
-        // --- 2. NOTIFICATIONLAR SONINI OLISH (TUZATILDI) ---
+        // --- 2. NOTIFICATIONLAR SONINI OLISH ---
         const countRes = await fetch(
           `https://nt-gym-api.it-mahalla.uz/api/notifications/unread-count`,
           {
@@ -94,24 +94,21 @@ const Navbar: React.FC = () => {
 
         if (countRes.ok) {
           const countData = await countRes.json();
-          // API formatiga qarab: countData o'zi son yoki { count: X } bo'lishi mumkin
           setNotifCount(
             typeof countData === "number" ? countData : countData.count || 0,
           );
         }
       } catch (error) {
         console.error("Navbar data error:", error);
-      } finally {
-        setLoading(false);
       }
     };
 
     initData();
 
-    // Har 30 soniyada sonni yangilab turish (ixtiyoriy, lekin foydali)
+    // Har 30 soniyada yangilash
     const interval = setInterval(initData, 30000);
     return () => clearInterval(interval);
-  }, [location.pathname]); // Sahifa o'zgarganda ham son yangilanadi
+  }, [location.pathname]);
 
   // Change Password sahifasida Navbar ko'rinmasligi uchun
   if (location.pathname === "/profile/change-password") {
@@ -146,9 +143,7 @@ const Navbar: React.FC = () => {
         </LogoSection>
 
         <RightSection>
-          <NotificationButton
-            onClick={() => navigate("/users/notifications")}
-          >
+          <NotificationButton onClick={() => navigate("/users/notifications")}>
             <svg
               width="24"
               height="24"

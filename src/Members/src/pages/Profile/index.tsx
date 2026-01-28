@@ -1,7 +1,70 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import toast from "react-hot-toast"; // Toaster import qilindi
+import toast from "react-hot-toast";
 import * as S from "./Profile.styled";
+
+// --- SKELETON KOMPONENTI ---
+const ProfileSkeleton = () => {
+  return (
+    <S.Wrapper>
+      {/* Header Skeleton */}
+      <S.SkeletonHeader>
+        <S.AvatarContainer style={{ background: "#0b1620" }}>
+          <S.SkeletonPulse width="100%" height="100%" borderRadius="50%" />
+        </S.AvatarContainer>
+      </S.SkeletonHeader>
+
+      <S.Content>
+        {/* Ism va Bio Skeleton */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            marginBottom: "30px",
+          }}
+        >
+          <S.SkeletonPulse
+            width="250px"
+            height="32px"
+            borderRadius="8px"
+            margin="0 0 10px 0"
+          />
+          <S.SkeletonPulse width="350px" height="16px" borderRadius="4px" />
+        </div>
+
+        {/* Grid Stats Skeleton */}
+        <S.Grid>
+          {[1, 2, 3, 4].map((item) => (
+            <S.Item key={item}>
+              <S.SkeletonPulse
+                width="60px"
+                height="12px"
+                margin="0 0 8px 0"
+                borderRadius="4px"
+              />
+              <S.SkeletonPulse width="100px" height="20px" borderRadius="4px" />
+            </S.Item>
+          ))}
+        </S.Grid>
+
+        {/* Buttons Skeleton */}
+        <div
+          style={{
+            display: "flex",
+            gap: "15px",
+            justifyContent: "center",
+            marginTop: "40px",
+          }}
+        >
+          <S.SkeletonPulse width="130px" height="45px" borderRadius="12px" />
+          <S.SkeletonPulse width="180px" height="45px" borderRadius="12px" />
+          <S.SkeletonPulse width="100px" height="45px" borderRadius="12px" />
+        </div>
+      </S.Content>
+    </S.Wrapper>
+  );
+};
 
 const decodeJwt = (token: string) => {
   try {
@@ -27,7 +90,7 @@ const Profile = () => {
     height: "",
     weight: "",
     bio: "",
-    imageUrl: "", // Rasm nomi uchun
+    imageUrl: "",
   });
 
   const fetchUserProfile = async () => {
@@ -84,7 +147,6 @@ const Profile = () => {
     fetchUserProfile();
   }, []);
 
-  // Profile.tsx ichidagi handleLogout funksiyasi
   const handleLogout = () => {
     toast(
       (t) => (
@@ -141,48 +203,44 @@ const Profile = () => {
     );
   };
 
-const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  // Fayl hajmini tekshirish (masalan max 2MB)
-  if (file.size > 2 * 1024 * 1024) {
-    toast.error("Rasm hajmi juda katta! Maksimal 2MB");
-    return;
-  }
-
-  const formData = new FormData();
-
-  formData.append("image", file);
-
-  const toastId = toast.loading("Rasm yuklanmoqda...");
-  const token = localStorage.getItem("token");
-
-  try {
-    const res = await fetch("https://nt-gym-api.it-mahalla.uz/api/upload", {
-      method: "POST",
-      headers: {
-
-        Authorization: `Bearer ${token}`,
-      },
-      body: formData,
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.message || "Yuklashda xatolik");
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Rasm hajmi juda katta! Maksimal 2MB");
+      return;
     }
 
-    const data = await res.json();
+    const formData = new FormData();
+    formData.append("image", file);
 
-    const uploadedFileName = data.filename || data.file || data.url;
+    const toastId = toast.loading("Rasm yuklanmoqda...");
+    const token = localStorage.getItem("token");
 
-    setForm((prev) => ({ ...prev, imageUrl: uploadedFileName }));
-    toast.success("Rasm muvaffaqiyatli yuklandi!", { id: toastId });
-  } catch (err: any) {
-    toast.error(err.message || "Rasmni yuklashda xatolik!", { id: toastId });
-  }
-};
+    try {
+      const res = await fetch("https://nt-gym-api.it-mahalla.uz/api/upload", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Yuklashda xatolik");
+      }
+
+      const data = await res.json();
+      const uploadedFileName = data.filename || data.file || data.url;
+
+      setForm((prev) => ({ ...prev, imageUrl: uploadedFileName }));
+      toast.success("Rasm muvaffaqiyatli yuklandi!", { id: toastId });
+    } catch (err: any) {
+      toast.error(err.message || "Rasmni yuklashda xatolik!", { id: toastId });
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -195,7 +253,7 @@ const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         height: Number(form.height),
         weight: Number(form.weight),
         bio: form.bio,
-        image_url: form.imageUrl, // Yuklangan rasm nomi
+        image_url: form.imageUrl,
       };
 
       const res = await fetch(
@@ -224,12 +282,8 @@ const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     }
   };
 
-  if (loading)
-    return (
-      <S.Wrapper>
-        <S.Content>Yuklanmoqda...</S.Content>
-      </S.Wrapper>
-    );
+  // --- SKELETON LOADING ---
+  if (loading) return <ProfileSkeleton />;
 
   return (
     <S.Wrapper>
@@ -300,7 +354,6 @@ const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
             <h2 style={{ marginBottom: "25px" }}>Edit Profile Info</h2>
 
             <S.PhotoSection>
-              {/* Formadagi vaqtinchalik rasmni ko'rsatish */}
               <img
                 src={
                   form.imageUrl
@@ -383,6 +436,6 @@ const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
       )}
     </S.Wrapper>
   );
-};;
+};
 
 export default Profile;

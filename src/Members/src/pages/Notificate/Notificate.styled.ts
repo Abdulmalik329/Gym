@@ -1,4 +1,4 @@
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 
 export const Container = styled.div`
   max-width: 830px;
@@ -143,4 +143,43 @@ export const Time = styled.span`
   font-size: 12px;
   color: #556270;
   font-weight: 500;
+`;
+
+const shimmer = keyframes`
+  0% { background-position: -468px 0; }
+  100% { background-position: 468px 0; }
+`;
+
+export const SkeletonPulse = styled.div<{
+  width?: string;
+  height?: string;
+  borderRadius?: string;
+  marginBottom?: string;
+}>`
+  display: block;
+  height: ${(props) => props.height || "100%"};
+  width: ${(props) => props.width || "100%"};
+  border-radius: ${(props) => props.borderRadius || "4px"};
+  margin-bottom: ${(props) => props.marginBottom || "0"};
+  background: #233040; /* Card ichidagi element rangi */
+  background-image: linear-gradient(
+    to right,
+    #233040 0%,
+    #2a3b4c 20%,
+    /* Yaltirash rangi */ #233040 40%,
+    #233040 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 800px 100%;
+  animation: ${shimmer} 1.2s linear infinite forwards;
+`;
+
+export const SkeletonCard = styled.div`
+  background-color: #1a2634;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  border-left: 4px solid #2a3b4c; /* Neytral border */
 `;
