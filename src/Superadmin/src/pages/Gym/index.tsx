@@ -11,7 +11,6 @@ import { Loader2, PackageSearch } from 'lucide-react';
 export default function GymPage() {
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
-    // Xatolikni oldini olish uchun id turini aniq ko'rsatamiz
     const [deleteConfig, setDeleteConfig] = useState<{
         isOpen: boolean,
         id: number | string | null
@@ -26,19 +25,16 @@ export default function GymPage() {
         <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 font-sans transition-colors duration-500">
             <div className="max-w-7xl mx-auto">
 
-                {/* Sahifa Sarlavhasi */}
                 <GymHeader
                     openModal={() => setIsModalOpen(true)}
                     fetchData={fetchGyms}
                     isLoading={isLoading}
                 />
 
-                {/* ASOSIY JADVAL: Xatolik aynan shu yerda bo'lgan */}
                 {gyms.length > 0 ? (
                     <GymTable
                         gyms={gyms}
                         isLoading={isLoading}
-                        // 'id' parametriga aniq tur berildi
                         onDelete={(id: number | string) => setDeleteConfig({ isOpen: true, id })}
                     />
                 ) : !isLoading ? (
@@ -55,7 +51,6 @@ export default function GymPage() {
                     </div>
                 ) : null}
 
-                {/* O'chirishni tasdiqlash modali */}
                 <ConfirmationModal
                     isOpen={deleteConfig.isOpen}
                     isDarkMode={true}
@@ -71,7 +66,6 @@ export default function GymPage() {
                     }}
                 />
 
-                {/* Yangi zal qo'shish modali */}
                 {isModalOpen && (
                     <GymModal
                         isDarkMode={true}
@@ -82,7 +76,6 @@ export default function GymPage() {
                     />
                 )}
 
-                {/* Dastlabki yuklanish holati */}
                 {isLoading && gyms.length === 0 && (
                     <div className="flex flex-col items-center justify-center mt-32 gap-4">
                         <Loader2 className="animate-spin text-blue-500 w-12 h-12" />

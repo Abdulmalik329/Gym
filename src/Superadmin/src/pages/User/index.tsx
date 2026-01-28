@@ -29,8 +29,6 @@ export default function UsersPage() {
     });
 
     const theme = getTheme(isDarkMode);
-
-    // --- API CALLS ---
     const fetchData = async () => {
         setIsLoading(true);
         try {
@@ -108,11 +106,16 @@ export default function UsersPage() {
     };
 
     const filteredUsers = useMemo(() => {
-        return users.filter(u =>
-            `${u.first_name} ${u.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            u.phone?.includes(searchTerm)
-        );
+        return users.filter(u => {
+            const isManager = u.role === 'GYM_MANAGER';
+
+            const matchesSearch =
+                `${u.first_name} ${u.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                u.phone?.includes(searchTerm);
+
+            return isManager && matchesSearch;
+        });
     }, [users, searchTerm]);
 
     // --- RENDER ---

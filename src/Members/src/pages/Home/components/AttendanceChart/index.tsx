@@ -12,8 +12,8 @@ interface AttendanceRecord {
 }
 
 interface Props {
-  records?: AttendanceRecord[]; // API dan keladigan ro'yxat
-  totalVisits?: number; // Umumiy tashriflar soni
+  records?: AttendanceRecord[];
+  totalVisits?: number;
 }
 
 const AttendanceChart = ({ records = [], totalVisits = 0 }: Props) => {
@@ -21,9 +21,6 @@ const AttendanceChart = ({ records = [], totalVisits = 0 }: Props) => {
   const getCurrentWeekDays = () => {
     const today = new Date();
     const currentDay = today.getDay(); // 0 (Sun) - 6 (Sat)
-
-    // Bizga hafta Dushanbadan (1) boshlanishi kerak.
-    // Agar Yakshanba (0) bo'lsa, uni 7 deb olamiz.
     const dayIndex = currentDay === 0 ? 7 : currentDay;
 
     const monday = new Date(today);
@@ -42,12 +39,26 @@ const AttendanceChart = ({ records = [], totalVisits = 0 }: Props) => {
   const currentWeek = getCurrentWeekDays();
   const todayDateString = new Date().toDateString();
 
-  // 2. Sanani tekshirish funksiyasi
+  // Yordamchi funksiya: Sanani YYYY-MM-DD formatga o'tkazish (Lokal vaqt bo'yicha)
+  const formatDateToLocalISO = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // 2. O'zgartirilgan tekshirish funksiyasi
   const isPresent = (dateToCheck: Date) => {
+    // Kalendardagi ushbu katakchaning sanasi (masalan: "2026-01-28")
+    const dateCheckStr = formatDateToLocalISO(dateToCheck);
+
     return records.some((record) => {
-      // API dagi vaqtni Local vaqtga o'tkazib solishtiramiz
-      const recordDate = new Date(record.checkInAt);
-      return recordDate.toDateString() === dateToCheck.toDateString();
+      // API dan kelgan sanani "T" harfigacha qirqib olamiz.
+      // "2026-01-28T23:59:59.999Z" -> "2026-01-28" bo'lib qoladi.
+      // Bu usul vaqt mintaqasi o'zgarishini oldini oladi.
+      const recordDateStr = record.checkInAt.split("T")[0];
+
+      return recordDateStr === dateCheckStr;
     });
   };
 
@@ -98,7 +109,6 @@ const AttendanceChart = ({ records = [], totalVisits = 0 }: Props) => {
                   height: "36px",
                   borderRadius: "50%",
                   backgroundColor: active ? "#2b8feb" : "#1a2634",
-                  // Bugungi kun bo'lsa oq ramka, aktiv bo'lsa ramka yo'q, passiv bo'lsa kulrang ramka
                   border: isToday
                     ? "2px solid #fff"
                     : active
@@ -110,18 +120,16 @@ const AttendanceChart = ({ records = [], totalVisits = 0 }: Props) => {
                   color: active ? "#fff" : "#6b7a8f",
                   fontWeight: "bold",
                   fontSize: "14px",
-                  // Aktiv bo'lsa soya beramiz
                   boxShadow: active
                     ? "0 4px 10px rgba(43, 143, 235, 0.4)"
                     : "none",
                   cursor: "default",
                 }}
-                title={date.toLocaleDateString()} // Sichqoncha borganda sana chiqadi
+                title={date.toLocaleDateString()}
               >
                 {weekDayLabels[index]}
               </div>
 
-              {/* Pastki kichkina nuqta */}
               <div
                 style={{
                   width: "6px",

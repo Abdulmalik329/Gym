@@ -9,7 +9,8 @@ export const useAppNavigate = () => {
         goGymManagment: () => navigate('/admin/gym'),
         goUser: () => navigate("/admin/user"),
         goMembershipPlans: () => navigate("/admin/membership-plans"),
-        goFinancialReports: () => navigate("/admin/financial-reports")
+        goFinancialReports: () => navigate("/admin/financial-reports"),
+        goAdminProfile: () => navigate("/admin/profile")
 
     }), [navigate]);
 };
