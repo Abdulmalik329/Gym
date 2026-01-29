@@ -1,12 +1,12 @@
 export interface User {
     id: number | string;
-    first_name: string;
-    last_name: string;
+    firstName: string; // first_name emas
+    lastName: string;  // last_name emas
     email: string;
     phone: string;
     role: 'SUPER_ADMIN' | 'MANAGER' | 'MEMBER' | string;
-    is_active: boolean;
-    gym_id?: number | null;
+    isActive: boolean; // is_active emas
+    gymId?: number | null; // gym_id emas
 }
 
 

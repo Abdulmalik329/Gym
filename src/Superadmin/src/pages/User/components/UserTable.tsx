@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     Mail, Phone, ShieldAlert, Building2,
-    CheckCircle, Trash2, Info
+    CheckCircle, Ban, Info
 } from 'lucide-react';
 import type { User, Gym } from '../types';
 
@@ -10,8 +10,7 @@ interface UserTableProps {
     gyms: Gym[];
     theme: any;
     isLoading: boolean;
-    onDelete: (user: User) => void;
-    onActivate: (user: User) => void;
+    onToggleStatus: (user: User) => void;
 }
 
 export const UserTable: React.FC<UserTableProps> = ({
@@ -19,14 +18,13 @@ export const UserTable: React.FC<UserTableProps> = ({
     gyms,
     theme,
     isLoading,
-    onDelete,
-    onActivate
+    onToggleStatus
 }) => {
-
-    // Foydalanuvchi zalini aniqlash funksiyasi
+    
     const getGymName = (gymId: string | number | undefined | null) => {
         if (!gymId) return "Zal biriktirilmagan";
-        return gyms.find(g => g.id === gymId)?.name || "Zal topilmadi";
+        const foundGym = gyms.find(g => String(g.id) === String(gymId));
+        return foundGym ? foundGym.name : "Zal topilmadi";
     };
 
     return (
@@ -37,7 +35,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                         <tr className={`${theme.tableHeader} text-xs font-bold uppercase tracking-widest`}>
                             <th className="p-5 text-left">Profil</th>
                             <th className="p-5 text-left">Aloqa</th>
-                            <th className="p-5 text-left">Roli</th>
+                            <th className="p-5 text-left">Zal va Rol</th>
                             <th className="p-5 text-left">Holati</th>
                             <th className="p-5 text-right">Amallar</th>
                         </tr>
@@ -54,19 +52,16 @@ export const UserTable: React.FC<UserTableProps> = ({
                             </tr>
                         ) : (
                             users.map((user) => (
-                                <tr key={user.id} className={`${theme.rowHover} transition-colors group`}>
-                                    {/* PROFIL */}
+                                <tr key={user.id} className={`${theme.rowHover} transition-colors`}>
                                     <td className="p-5">
                                         <div className="flex items-center gap-4">
-                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg shadow-inner 
-                                                ${user.role === 'SUPER_ADMIN' ? 'bg-purple-500/10 text-purple-500' :
-                                                    user.role === 'MANAGER' ? 'bg-blue-500/10 text-blue-500' :
-                                                        'bg-emerald-500/10 text-emerald-500'}`}>
-                                                {user.first_name?.[0]}{user.last_name?.[0]}
+                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg 
+                                                ${user.role === 'SUPER_ADMIN' ? 'bg-purple-500/10 text-purple-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                                                {user.firstName?.[0]}{user.lastName?.[0]}
                                             </div>
                                             <div>
                                                 <div className="font-bold text-base flex items-center gap-2">
-                                                    {user.first_name} {user.last_name}
+                                                    {user.firstName} {user.lastName}
                                                     {user.role === 'SUPER_ADMIN' && <ShieldAlert size={14} className="text-purple-500" />}
                                                 </div>
                                                 <div className={`text-xs ${theme.subText}`}>ID: #{user.id}</div>
@@ -74,7 +69,6 @@ export const UserTable: React.FC<UserTableProps> = ({
                                         </div>
                                     </td>
 
-                                    {/* ALOQA */}
                                     <td className="p-5 text-sm">
                                         <div className="flex items-center gap-2 mb-1">
                                             <Mail size={14} className="opacity-50" /> {user.email}
@@ -84,21 +78,20 @@ export const UserTable: React.FC<UserTableProps> = ({
                                         </div>
                                     </td>
 
-                                    {/* ROLI VA ZALI */}
                                     <td className="p-5">
-                                        <span className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tighter bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                                            {user.role}
-                                        </span>
-                                        {user.gym_id && (
-                                            <div className="flex items-center gap-1 mt-2 text-[10px] font-bold text-slate-500">
-                                                <Building2 size={10} /> {getGymName(user.gym_id)}
+                                        <div className="flex flex-col gap-2">
+                                            <span className="px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-blue-500/10 text-blue-500 border border-blue-500/20 w-fit">
+                                                {user.role}
+                                            </span>
+                                            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+                                                <Building2 size={14} className="text-blue-500" />
+                                                {getGymName(user.gymId)}
                                             </div>
-                                        )}
+                                        </div>
                                     </td>
 
-                                    {/* HOLATI */}
                                     <td className="p-5">
-                                        {user.is_active ? (
+                                        {user.isActive ? (
                                             <span className="text-emerald-500 text-xs font-bold px-3 py-1 bg-emerald-500/10 rounded-full flex items-center gap-1.5 w-fit">
                                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Faol
                                             </span>
@@ -111,24 +104,16 @@ export const UserTable: React.FC<UserTableProps> = ({
 
                                     {/* AMALLAR */}
                                     <td className="p-5 text-right">
-                                        <div className="flex justify-end gap-2">
-                                            {!user.is_active && (
-                                                <button
-                                                    onClick={() => onActivate(user)}
-                                                    className="p-2.5 text-emerald-500 hover:bg-emerald-500/10 rounded-xl transition-colors"
-                                                    title="Aktivlashtirish"
-                                                >
-                                                    <CheckCircle size={20} />
-                                                </button>
-                                            )}
-                                            <button
-                                                onClick={() => onDelete(user)}
-                                                className="p-2.5 text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors"
-                                                title="O'chirish"
-                                            >
-                                                <Trash2 size={20} />
-                                            </button>
-                                        </div>
+                                        <button
+                                            onClick={() => onToggleStatus(user)}
+                                            className={`p-2.5 rounded-xl transition-all active:scale-90 ${user.isActive
+                                                    ? 'text-rose-500 hover:bg-rose-500/10'
+                                                    : 'text-emerald-500 hover:bg-emerald-500/10'
+                                                }`}
+                                            title={user.isActive ? "Bloklash" : "Aktivlashtirish"}
+                                        >
+                                            {user.isActive ? <Ban size={20} /> : <CheckCircle size={20} />}
+                                        </button>
                                     </td>
                                 </tr>
                             ))

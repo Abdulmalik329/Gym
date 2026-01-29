@@ -17,7 +17,6 @@ export const UserForm: React.FC<UserFormProps> = ({
     onClose,
     onSubmit
 }) => {
-    // 1. Keraksiz maydonlarni initialForm'dan olib tashladik
     const initialForm: UserFormData = {
         first_name: '',
         last_name: '',

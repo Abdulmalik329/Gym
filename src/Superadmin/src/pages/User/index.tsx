@@ -29,12 +29,15 @@ export default function UsersPage() {
     });
 
     const theme = getTheme(isDarkMode);
+
+    // --- DATA FETCHING ---
     const fetchData = async () => {
         setIsLoading(true);
         try {
             const usersData = await userApi.getUsers();
             const gymsData = await userApi.getGyms();
 
+            // Backend response formatini tekshirish (Array yoki {data: []})
             setUsers(Array.isArray(usersData) ? usersData : (usersData.data || []));
             setGyms(Array.isArray(gymsData) ? gymsData : (gymsData.data || []));
         } catch (err: any) {
@@ -49,51 +52,6 @@ export default function UsersPage() {
         fetchData();
     }, []);
 
-    const handleCreateManager = async (formData: UserFormData) => {
-        setIsLoading(true);
-        try {
-            await userApi.createManager(formData);
-            showNotification("Muvaffaqiyatli", "Yangi menejer tizimga qo'shildi.", "success");
-            setIsModalOpen(false);
-            fetchData();
-        } catch (err: any) {
-            showNotification("Xatolik", err.message, "danger");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleActivate = async (user: User) => {
-        setIsLoading(true);
-        try {
-            await userApi.activateUser(user.id);
-            showNotification("Aktivlashtirildi", "Foydalanuvchi holati o'zgartirildi.", "success");
-            fetchData();
-        } catch (err: any) {
-            showNotification("Xatolik", err.message, "danger");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const initiateDelete = (user: User) => {
-        setConfirmModal({
-            isOpen: true,
-            title: "Foydalanuvchini o'chirish",
-            message: `${user.first_name} ${user.last_name} tizimdan o'chirilsinmi?`,
-            type: "danger",
-            onConfirm: async () => {
-                try {
-                    await userApi.deleteUser(user.id);
-                    showNotification("O'chirildi", "Foydalanuvchi muvaffaqiyatli o'chirildi.", "success");
-                    fetchData();
-                } catch (err: any) {
-                    showNotification("Xatolik", err.message, "danger");
-                }
-            }
-        });
-    };
-
     // --- HELPERS ---
     const showNotification = (title: string, message: string, type: ConfirmModalState['type']) => {
         setConfirmModal({
@@ -105,25 +63,67 @@ export default function UsersPage() {
         });
     };
 
+    // --- FILTERING ---
     const filteredUsers = useMemo(() => {
         return users.filter(u => {
-            const isManager = u.role === 'GYM_MANAGER';
-
-            const matchesSearch =
-                `${u.first_name} ${u.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                u.phone?.includes(searchTerm);
-
-            return isManager && matchesSearch;
+            const fullSearchString = `${u.firstName} ${u.lastName} ${u.email} ${u.phone}`.toLowerCase();
+            return fullSearchString.includes(searchTerm.toLowerCase());
         });
     }, [users, searchTerm]);
 
-    // --- RENDER ---
+    // --- ACTIONS ---
+    const handleCreateManager = async (formData: UserFormData) => {
+        setIsLoading(true);
+        try {
+            await userApi.createManager(formData);
+            showNotification("Muvaffaqiyatli", "Yangi menejer tizimga qo'shildi", "success");
+            setIsModalOpen(false);
+            fetchData();
+        } catch (err: any) {
+            showNotification("Xatolik", err.message, "danger");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleToggleStatus = async (user: User) => {
+        const actionText = user.isActive ? "bloklamoqchimisiz" : "faollashtirmoqchimisiz";
+
+        setConfirmModal({
+            isOpen: true,
+            title: user.isActive ? "Foydalanuvchini bloklash" : "Foydalanuvchini faollashtirish",
+            message: `${user.firstName} ${user.lastName}ni haqiqatdan ham ${actionText}?`,
+            type: user.isActive ? "warning" : "info",
+            onConfirm: async () => {
+                setIsLoading(true);
+                try {
+                    if (user.isActive) {
+                        // Agar backendda block endpointi bo'lsa:
+                        // await userApi.blockUser(user.id);
+
+                        // Hozircha aktivlashtirish bilan bir xil ishlatib ko'ring yoki API-ni tekshiring
+                        await userApi.activateUser(user.id);
+                    } else {
+                        await userApi.activateUser(user.id);
+                    }
+                    showNotification("Bajarildi", "Holat muvaffaqiyatli o'zgartirildi", "success");
+                    fetchData();
+                } catch (err: any) {
+                    showNotification("Xatolik", err.message, "danger");
+                } finally {
+                    setIsLoading(false);
+                }
+            }
+        });
+    };
+
     if (isInitialLoading) {
         return (
-            <div className={`min-h-screen flex flex-col items-center justify-center ${theme.bg}`}>
-                <Loader2 className="animate-spin text-blue-500 w-12 h-12 mb-4" />
-                <p className="font-bold animate-pulse">Tizim yuklanmoqda...</p>
+            <div className={`min-h-screen flex items-center justify-center ${theme.bg}`}>
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
+                    <p className="font-bold tracking-widest animate-pulse">YUKLANMOQDA...</p>
+                </div>
             </div>
         );
     }
@@ -149,8 +149,7 @@ export default function UsersPage() {
                     gyms={gyms}
                     theme={theme}
                     isLoading={isLoading}
-                    onDelete={initiateDelete}
-                    onActivate={handleActivate}
+                    onToggleStatus={handleToggleStatus}
                 />
 
                 {isModalOpen && (

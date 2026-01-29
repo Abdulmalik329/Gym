@@ -4,9 +4,8 @@ import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persist
 import { Toaster } from "react-hot-toast";
 import {  Route, Routes, } from "react-router-dom";
 import { lazy } from "react";
-import SuperAdmin from "./Superadmin/App";
-
-
+const SuperAdmin = lazy(() => import("./Superadmin/App")); ;
+const MenagerApp = lazy(() => import("./Manager/App"));
 const MembersApp = lazy(() => import("./Members/App")); // Member qismi
 
 
@@ -18,7 +17,7 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       retry: 1,
     },
-  },
+  }, 
 });
 
 const persister = createSyncStoragePersister({
@@ -33,12 +32,12 @@ persistQueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-        <Toaster />
-          <Routes>
-            <Route path="/admin/*" element={<SuperAdmin />} />
-            <Route path="/*" element={<MembersApp />} />
-
-          </Routes>
+      <Toaster />
+      <Routes>
+        <Route path="/admin/*" element={<SuperAdmin />} />
+        <Route path="/manager/*" element={<MenagerApp />} />
+        <Route path="/*" element={<MembersApp />} />
+      </Routes>
     </QueryClientProvider>
   );
 }
