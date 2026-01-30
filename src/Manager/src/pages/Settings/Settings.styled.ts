@@ -1,51 +1,100 @@
-// Settings.styled.ts
-import styled from "styled-components";
+import styled, { keyframes, css } from "styled-components";
 
+// --- Animatsiyalar ---
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+`;
+
+const pulse = keyframes`
+  0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+`;
+
+// --- Asosiy Layout ---
 export const Page = styled.div`
-  padding: 32px;
-  max-width: 900px;
+  max-width: 800px;
+  margin: 0 auto;
+  padding-bottom: 40px;
+  animation: ${fadeIn} 0.5s ease-out;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 `;
 
 export const Title = styled.h1`
-  font-size: 28px;
-  font-weight: 900;
+  font-size: 32px;
+  font-weight: 800;
   color: #ffffff;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
 `;
 
 export const Subtitle = styled.p`
   color: #94a3b8;
+  font-size: 16px;
   margin-bottom: 32px;
+  line-height: 1.5;
+  max-width: 600px;
 `;
 
+// --- Karta Dizayni ---
 export const Card = styled.div`
-  background: ${({ theme }) => theme.colors.card};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: 18px;
-  padding: 24px;
+  background: linear-gradient(145deg, #111827, #0f172a);
+  border: 1px solid #1f2937;
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transition:
+    transform 0.2s,
+    border-color 0.2s;
+
+  &:hover {
+    border-color: #374151;
+    transform: translateY(-2px);
+  }
+`;
+
+export const CardHeader = styled.div`
   margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #1f2937;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 `;
 
 export const CardTitle = styled.h2`
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 700;
   color: #ffffff;
-  margin-bottom: 16px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  &::before {
+    content: "";
+    display: block;
+    width: 4px;
+    height: 20px;
+    background: #3b82f6;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  }
 `;
 
-export const Divider = styled.div`
-  height: 1px;
-  background: ${({ theme }) => theme.colors.border};
-  margin: 24px 0;
-`;
-
+// --- Form Elementlari ---
 export const Row = styled.div`
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 16px;
+  gap: 20px;
   align-items: end;
 
-  @media (max-width: 560px) {
+  @media (max-width: 600px) {
     grid-template-columns: 1fr;
   }
 `;
@@ -53,125 +102,190 @@ export const Row = styled.div`
 export const Field = styled.div`
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  width: 100%;
 `;
 
 export const Label = styled.label`
   font-size: 13px;
   font-weight: 600;
-  color: #94a3b8;
-  margin-bottom: 6px;
+  color: #cbd5e1;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 `;
 
 export const Input = styled.input`
-  padding: 12px 14px;
+  width: 100%;
+  padding: 14px 16px;
   border-radius: 12px;
-  background: ${({ theme }) => theme.colors.sidebar};
-  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: #1f2937;
+  border: 1px solid #374151;
   color: #ffffff;
-  font-size: 14px;
+  font-size: 15px;
+  transition: all 0.2s ease;
+
+  &::placeholder {
+    color: #4b5563;
+  }
 
   &:focus {
     outline: none;
-    border-color: ${({ theme }) => theme.colors.primary};
-  }
-
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
-`;
-
-export const Button = styled.button`
-  padding: 12px 20px;
-  border-radius: 12px;
-  border: none;
-  background: ${({ theme }) => theme.colors.primary};
-  color: #ffffff;
-  font-weight: 700;
-  cursor: pointer;
-
-  &:hover {
-    background: #2563eb;
+    border-color: #3b82f6;
+    background: #111827;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
   }
 
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+    background: #111827;
+  }
+`;
+
+export const Divider = styled.div`
+  height: 1px;
+  background: #1f2937;
+  margin: 32px 0;
+`;
+
+export const Hint = styled.p`
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.4;
+`;
+
+// --- Tugmalar ---
+export const Button = styled.button`
+  padding: 14px 24px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: #3b82f6;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+
+  &:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
   }
 `;
 
 export const SecondaryButton = styled(Button)`
-  background: #1e293b;
+  background: transparent;
+  border: 1px solid #374151;
+  color: #e2e8f0;
 
   &:hover {
-    background: #334155;
+    background: #1f2937;
+    border-color: #4b5563;
+    box-shadow: none;
   }
 `;
 
-export const Hint = styled.p`
-  margin: 10px 0 0;
-  font-size: 13px;
-  color: #94a3b8;
+// --- Xabarlar ---
+export const ErrorText = styled.div`
+  margin-bottom: 20px;
+  padding: 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 12px;
+  color: #fca5a5;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 `;
 
-export const ErrorText = styled.p`
-  margin: 10px 0 0;
-  font-size: 13px;
-  color: #fb7185;
+export const SuccessText = styled.div`
+  margin-bottom: 20px;
+  padding: 16px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 12px;
+  color: #6ee7b7;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 `;
 
-export const SuccessText = styled.p`
-  margin: 10px 0 0;
-  font-size: 13px;
-  color: #34d399;
-`;
-
+// --- OTP Kiritish ---
 export const CodeRow = styled.div`
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin: 24px 0;
 `;
 
 export const CodeInput = styled.input`
-  width: 48px;
-  height: 52px;
-  border-radius: 10px;
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  background: ${({ theme }) => theme.colors.sidebar};
+  width: 56px;
+  height: 64px;
+  border-radius: 16px;
+  border: 2px solid #374151;
+  background: #1f2937;
   text-align: center;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
   color: #ffffff;
+  transition: all 0.2s;
 
   &:focus {
     outline: none;
-    border-color: ${({ theme }) => theme.colors.primary};
+    border-color: #3b82f6;
+    background: #111827;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.15);
   }
 `;
 
+// --- Avatar ---
 export const AvatarRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 24px;
+  padding: 8px 0;
 `;
 
 export const AvatarImg = styled.img`
-  width: 80px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
-  border: 1px solid ${({ theme }) => theme.colors.border};
+  border: 4px solid #1f2937;
   object-fit: cover;
+  box-shadow: 0 0 0 2px #3b82f6;
 `;
 
 export const AvatarFallback = styled.div`
-  width: 80px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
-  background: #1e293b;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 800;
   color: #ffffff;
+  border: 4px solid #1f2937;
+  box-shadow: 0 0 0 2px #3b82f6;
+  text-transform: uppercase;
 `;

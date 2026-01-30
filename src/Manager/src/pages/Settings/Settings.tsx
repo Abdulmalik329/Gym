@@ -1,4 +1,3 @@
-// Settings.tsx
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
@@ -7,6 +6,7 @@ import {
   Title,
   Subtitle,
   Card,
+  CardHeader,
   CardTitle,
   Divider,
   Row,
@@ -44,16 +44,14 @@ const BASE_URL = "https://nt-gym-api.it-mahalla.uz";
 const API = {
   ME: "/api/users/me",
   UPDATE_USER: (id: number) => `/api/users/${id}`,
-
-  // ⚠️ Swagger'dan aniq endpoint bo'lsa shu yerga qo'yasiz
-  PASS_SEND_OTP: "/api/auth/password/send-otp",
-  PASS_VERIFY_OTP: "/api/auth/password/verify-otp",
+  PASS_SEND_OTP: "/api/auth/password/send-otp", // Endpoint backendga moslab o'zgartiring
+  PASS_VERIFY_OTP: "/api/auth/password/verify-otp", // Endpoint backendga moslab o'zgartiring
 };
 
 const api = axios.create({ baseURL: BASE_URL });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token"); // token nomi boshqacha bo'lsa almashtiring
+  const token = localStorage.getItem("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -64,22 +62,19 @@ const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 const normalizeErrorMessage = (e: any, fallback: string) => {
   const raw =
     e?.response?.data?.message || e?.response?.data?.error || e?.message || "";
-
   const msg = String(raw).trim();
-
-  // Backend 404/HTML default javoblarini UI'da ko'rsatmaymiz
   if (
     msg.startsWith("Cannot POST") ||
     msg.startsWith("Cannot GET") ||
     msg.includes("<!DOCTYPE html>") ||
     msg.includes("<html")
   ) {
-    return ""; // yashiramiz
+    return "";
   }
-
   return msg || fallback;
 };
 
+/* ===================== COMPONENT ===================== */
 const Settings = () => {
   const [loading, setLoading] = useState(true);
 
@@ -164,7 +159,7 @@ const Settings = () => {
     loadMe();
   }, []);
 
-  /* ===================== PHONE UPDATE (NO OTP) ===================== */
+  /* ===================== PHONE UPDATE ===================== */
   const savePhone = async () => {
     toast("", "");
     const cleaned = newPhone.trim();
@@ -175,9 +170,7 @@ const Settings = () => {
     setPhoneSaving(true);
     try {
       const r = await api.patch(API.UPDATE_USER(user.id), { phone: cleaned });
-
       const updatedPhone = r.data?.phone ?? r.data?.data?.phone ?? cleaned;
-
       setUser((p) => ({ ...p, phone: updatedPhone }));
       toast("success", "Phone number updated successfully.");
     } catch (e: any) {
@@ -214,7 +207,6 @@ const Settings = () => {
       setOtp(["", "", "", "", "", ""]);
       toast("success", "Verification code sent to your email.");
     } catch (e: any) {
-      // "Cannot POST ..." bo'lsa normalize "" qaytaradi → raw error ko'rinmaydi
       const nice = normalizeErrorMessage(
         e,
         "Password verification service is not available right now.",
@@ -273,7 +265,7 @@ const Settings = () => {
     return (
       <Page>
         <Title>Account Settings</Title>
-        <Subtitle>Loading...</Subtitle>
+        <Subtitle>Loading your profile...</Subtitle>
       </Page>
     );
   }
@@ -283,12 +275,14 @@ const Settings = () => {
       <Title>Account Settings</Title>
       <Subtitle>Manage your personal information and security</Subtitle>
 
-      {error && <ErrorText>{error}</ErrorText>}
-      {success && <SuccessText>{success}</SuccessText>}
+      {error && <ErrorText>⚠ {error}</ErrorText>}
+      {success && <SuccessText>✓ {success}</SuccessText>}
 
-      {/* PROFILE */}
+      {/* PROFILE CARD */}
       <Card>
-        <CardTitle>Profile</CardTitle>
+        <CardHeader>
+          <CardTitle>Profile</CardTitle>
+        </CardHeader>
 
         <AvatarRow>
           {user.image_url ? (
@@ -298,19 +292,29 @@ const Settings = () => {
           )}
 
           <div>
-            <div style={{ color: "#fff", fontWeight: 800, fontSize: 16 }}>
+            <div style={{ color: "#fff", fontWeight: 800, fontSize: 20 }}>
               {fullName}
             </div>
-            <div style={{ color: "#94a3b8", fontSize: 13, marginTop: 4 }}>
-              Role: {user.role} • Gym ID: {user.gymId ?? "-"}
+            <div style={{ color: "#94a3b8", fontSize: 14, marginTop: 4 }}>
+              Role:{" "}
+              <span style={{ color: "#3b82f6", fontWeight: 600 }}>
+                {user.role}
+              </span>
             </div>
+            {user.gymId && (
+              <div style={{ color: "#64748b", fontSize: 13, marginTop: 2 }}>
+                Gym ID: #{user.gymId}
+              </div>
+            )}
           </div>
         </AvatarRow>
       </Card>
 
-      {/* EMAIL (UNIQUE, NO CHANGE) */}
+      {/* EMAIL CARD */}
       <Card>
-        <CardTitle>Email Address</CardTitle>
+        <CardHeader>
+          <CardTitle>Email Address</CardTitle>
+        </CardHeader>
 
         <Field>
           <Label>Email</Label>
@@ -319,9 +323,11 @@ const Settings = () => {
         </Field>
       </Card>
 
-      {/* PHONE (NO OTP) */}
+      {/* PHONE CARD */}
       <Card>
-        <CardTitle>Phone Number</CardTitle>
+        <CardHeader>
+          <CardTitle>Phone Number</CardTitle>
+        </CardHeader>
 
         <Row>
           <Field>
@@ -331,20 +337,20 @@ const Settings = () => {
               onChange={(e) => setNewPhone(e.target.value)}
               placeholder="+998901234567"
             />
-            <Hint>
-              This number will be used for account notifications and recovery.
-            </Hint>
+            <Hint>This number will be used for account notifications.</Hint>
           </Field>
 
           <Button onClick={savePhone} disabled={phoneSaving}>
-            {phoneSaving ? "Saving..." : "Save"}
+            {phoneSaving ? "Saving..." : "Save Changes"}
           </Button>
         </Row>
       </Card>
 
-      {/* PASSWORD (OTP via EMAIL) */}
+      {/* PASSWORD CARD */}
       <Card>
-        <CardTitle>Password</CardTitle>
+        <CardHeader>
+          <CardTitle>Security</CardTitle>
+        </CardHeader>
 
         {passStep === 1 && (
           <>
@@ -369,22 +375,29 @@ const Settings = () => {
                 placeholder="Minimum 6 characters"
               />
               <Hint>
-                A verification code will be sent to {user.email} to confirm this
-                change.
+                A verification code will be sent to <b>{user.email}</b> to
+                confirm this change.
               </Hint>
             </Field>
 
             <Divider />
 
-            <Button onClick={sendPasswordOtp} disabled={passBusy}>
-              {passBusy ? "Sending..." : "Send verification code"}
-            </Button>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <Button onClick={sendPasswordOtp} disabled={passBusy}>
+                {passBusy ? "Sending..." : "Update Password"}
+              </Button>
+            </div>
           </>
         )}
 
         {passStep === 2 && (
           <>
-            <Label>Verification code</Label>
+            <Label style={{ textAlign: "center", display: "block" }}>
+              Enter Verification Code
+            </Label>
+            <Hint style={{ textAlign: "center", marginBottom: 20 }}>
+              We sent a 6-digit code to {user.email}
+            </Hint>
 
             <CodeRow>
               {otp.map((x, i) => (
@@ -401,7 +414,7 @@ const Settings = () => {
 
             <Divider />
 
-            <Row>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
               <SecondaryButton
                 onClick={() => {
                   setPassStep(1);
@@ -413,9 +426,9 @@ const Settings = () => {
               </SecondaryButton>
 
               <Button onClick={verifyPasswordOtpAndChange} disabled={passBusy}>
-                {passBusy ? "Verifying..." : "Confirm password change"}
+                {passBusy ? "Verifying..." : "Confirm & Change"}
               </Button>
-            </Row>
+            </div>
           </>
         )}
       </Card>

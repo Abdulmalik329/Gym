@@ -1,20 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+// Ikonkalar (Yangi dizayn uchun)
+import { FiMenu, FiBell } from "react-icons/fi";
+
 import {
   Header,
   Left,
+  MenuTrigger,
   Title,
-  SearchBox,
-  SearchIcon,
-  SearchInput,
   Right,
   IconButton,
   Badge,
   ProfileTrigger,
   AvatarSmall,
-  UserInfo,
-  Name,
-  Role,
+  // Barcha eski stillar shu yerda import qilinishi shart
   Overlay,
   Drawer,
   DrawerHeader,
@@ -29,8 +28,6 @@ import {
   DrawerFooter,
   LogoutButton,
   GhostButton,
-
-  // modal
   Modal,
   ModalCard,
   ModalHead,
@@ -59,8 +56,6 @@ import {
   MemberName,
   MemberSub,
   Pill,
-
-  // inbox
   InboxSearch,
   InboxList,
   InboxItem,
@@ -71,7 +66,7 @@ import {
   TypeChip,
 } from "./Navbar.styled";
 
-/* ===================== TYPES ===================== */
+// --- TIPLAR VA API (ESKI KODINGIZDAN KO'CHIRILDI) ---
 type MeResponse = {
   id: number;
   role: string;
@@ -100,28 +95,21 @@ type NotificationItem = {
   createdAt: string;
 };
 
-/* ===================== API CONFIG ===================== */
 const BASE_URL = "https://nt-gym-api.it-mahalla.uz";
 
 const API = {
   ME: "/api/users/me",
   MY_GYM_USERS: "/api/users/get-my-gym-users",
-
   NOTIFICATIONS_ME: "/api/notifications/me",
   UNREAD_COUNT: "/api/notifications/unread-count",
   READ_ONE: (id: number) => `/api/notifications/${id}/read`,
   READ_ALL: "/api/notifications/read-all",
-
   NOTIFY_GYM_USERS: "/api/notifications/notify-gym-users",
 };
 
 const api = axios.create({
   baseURL: BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-  },
-  // ✅ transformRequest OLIB TASHLANDI (axios o‘zi JSON qiladi)
+  headers: { "Content-Type": "application/json", Accept: "application/json" },
 });
 
 api.interceptors.request.use((config) => {
@@ -130,99 +118,54 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// ✅ DEBUG: 400/500 sababini aniq ko‘rsatadi
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
-    console.log("API ERROR status:", err?.response?.status);
-    console.log("API ERROR data:", err?.response?.data);
-    console.log("API ERROR sent body:", err?.config?.data);
-    return Promise.reject(err);
-  },
+  (err) => Promise.reject(err),
 );
 
-/* ===================== HELPERS ===================== */
 const safeString = (v: any) => (v == null ? "" : String(v));
-
 const normalizeErrorMessage = (e: any, fallback: string) => {
-  const raw =
-    e?.response?.data?.message ||
-    e?.response?.data?.error ||
-    e?.response?.data ||
-    e?.message ||
-    "";
-
-  if (Array.isArray(raw)) return raw.join(", ");
-  if (typeof raw === "object") {
-    try {
-      return JSON.stringify(raw);
-    } catch {
-      return fallback;
-    }
-  }
-
-  const msg = String(raw).trim();
-  if (
-    msg.startsWith("Cannot POST") ||
-    msg.startsWith("Cannot GET") ||
-    msg.includes("<!DOCTYPE html>") ||
-    msg.includes("<html")
-  ) {
-    return fallback;
-  }
-  return msg || fallback;
+  const raw = e?.response?.data?.message || e?.message || "";
+  return String(raw).trim() || fallback;
 };
-
 const fullNameOf = (x: { firstName?: string; lastName?: string }) =>
   `${x.firstName || ""} ${x.lastName || ""}`.trim() || "User";
-
 const initialsOf = (x: { firstName?: string; lastName?: string }) => {
   const a = x.firstName?.[0] || "";
   const b = x.lastName?.[0] || "";
   return (a + b).toUpperCase() || "U";
 };
-
 const formatTime = (iso: string) => {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${y}-${m}-${day} ${hh}:${mm}`;
+  return d.toISOString().slice(0, 16).replace("T", " ");
 };
 
-/* ===================== STRICT TYPES (BACKEND) ===================== */
 const TYPE_OPTIONS = ["SYSTEM", "PAYMENT", "MEMBERSHIP", "ATTENDANCE"] as const;
 type NotifType = (typeof TYPE_OPTIONS)[number];
-
 const isAllowedType = (v: string): v is NotifType =>
   TYPE_OPTIONS.includes(v as NotifType);
 
-/* ===================== TEMPLATES ===================== */
 const templates = [
   {
     key: "GENERAL",
     label: "General update",
     title: "Gym update",
-    message: "Hello! We have an important update from the gym management.",
+    message: "Hello! We have an important update.",
     type: "SYSTEM" as NotifType,
   },
   {
     key: "PAYMENT",
     label: "Payment reminder",
     title: "Payment reminder",
-    message:
-      "Hi! This is a friendly reminder that your membership payment is due. Please complete your payment at your earliest convenience.",
+    message: "Please complete your payment.",
     type: "PAYMENT" as NotifType,
   },
   {
     key: "MEMBERSHIP",
     label: "Membership expiring",
-    title: "Membership expiring soon",
-    message:
-      "Hi! Your membership is expiring soon. Please renew to keep your access uninterrupted.",
+    title: "Membership expiring",
+    message: "Your membership is expiring soon.",
     type: "MEMBERSHIP" as NotifType,
   },
 ] as const;
@@ -231,14 +174,14 @@ type TemplateKey = (typeof templates)[number]["key"];
 type Audience = "ALL" | "CUSTOM";
 type TabKey = "INBOX" | "COMPOSE";
 
-/* =====================================================
-   COMPONENT
-===================================================== */
-const Navbar = () => {
+// --- NAVBAR KOMPONENTI (PROPS QO'SHILDI) ---
+interface NavbarProps {
+  toggleSidebar: () => void;
+}
+
+const Navbar: React.FC<NavbarProps> = ({ toggleSidebar }) => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifyOpen, setNotifyOpen] = useState(false);
-
-  // ME
   const [me, setMe] = useState<MeResponse | null>(null);
   const [loadingMe, setLoadingMe] = useState(true);
 
@@ -247,21 +190,13 @@ const Navbar = () => {
     return r.includes("manager");
   }, [me?.role]);
 
-  // unread badge (members only)
   const [unreadCount, setUnreadCount] = useState<number>(0);
-
-  // tabs
   const [tab, setTab] = useState<TabKey>("INBOX");
-
-  // INBOX
   const [notifLoading, setNotifLoading] = useState(false);
   const [notifSearch, setNotifSearch] = useState("");
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-
-  // COMPOSE recipients
   const [gymUsers, setGymUsers] = useState<GymUser[]>([]);
   const [loadingGymUsers, setLoadingGymUsers] = useState(false);
-
   const [templateKey, setTemplateKey] = useState<TemplateKey>("GENERAL");
   const [audience, setAudience] = useState<Audience>("ALL");
   const [searchUser, setSearchUser] = useState("");
@@ -271,8 +206,6 @@ const Navbar = () => {
     () => templates.find((t) => t.key === templateKey)!,
     [templateKey],
   );
-
-  // ✅ string state (TS error bo‘lmaydi)
   const [notifTitle, setNotifTitle] = useState<string>(currentTemplate.title);
   const [notifMessage, setNotifMessage] = useState<string>(
     currentTemplate.message,
@@ -293,11 +226,9 @@ const Navbar = () => {
     setErr("");
     setOk("");
   };
-
   const displayName = useMemo(() => (me ? fullNameOf(me) : "Loading..."), [me]);
   const displayInitials = useMemo(() => (me ? initialsOf(me) : "U"), [me]);
 
-  /* ------------------ LOAD ME ------------------ */
   useEffect(() => {
     const loadMe = async () => {
       setLoadingMe(true);
@@ -313,27 +244,20 @@ const Navbar = () => {
     loadMe();
   }, []);
 
-  /* ------------------ UNREAD COUNT ------------------ */
   const loadUnreadCount = async () => {
     if (!me || isManager) return;
     try {
-      const r = await api.get<number | { count: number }>(API.UNREAD_COUNT);
+      const r = await api.get<any>(API.UNREAD_COUNT);
       const val =
-        typeof r.data === "number"
-          ? r.data
-          : Number((r.data as any)?.count ?? 0);
+        typeof r.data === "number" ? r.data : Number(r.data?.count ?? 0);
       setUnreadCount(Number.isFinite(val) ? val : 0);
-    } catch {
-      // ignore
-    }
+    } catch {}
   };
 
   useEffect(() => {
     loadUnreadCount();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me?.id, isManager]);
 
-  /* ------------------ INBOX LOAD ------------------ */
   const loadMyNotifications = async () => {
     if (!me || isManager) return;
     setNotifLoading(true);
@@ -348,7 +272,6 @@ const Navbar = () => {
     }
   };
 
-  /* ------------------ GYM USERS LOAD (COMPOSE) ------------------ */
   const loadMyGymUsers = async () => {
     if (!me) return [];
     setLoadingGymUsers(true);
@@ -359,18 +282,16 @@ const Navbar = () => {
       return list;
     } catch (e: any) {
       setGymUsers([]);
-      setErr(normalizeErrorMessage(e, "Unable to load gym users list."));
+      setErr(normalizeErrorMessage(e, "Unable to load gym users."));
       return [];
     } finally {
       setLoadingGymUsers(false);
     }
   };
 
-  /* ------------------ OPEN MODAL ------------------ */
   const openNotifications = async () => {
     clearToast();
     setNotifyOpen(true);
-
     if (isManager) {
       setTab("COMPOSE");
       setAudience("ALL");
@@ -379,33 +300,24 @@ const Navbar = () => {
       await loadMyGymUsers();
       return;
     }
-
     setTab("INBOX");
     await Promise.all([loadUnreadCount(), loadMyNotifications()]);
   };
 
-  /* ------------------ FILTERS ------------------ */
   const filteredNotifications = useMemo(() => {
     const q = notifSearch.trim().toLowerCase();
     if (!q) return notifications;
-    return notifications.filter((n) => {
-      const t = (n.title || "").toLowerCase();
-      const m = (n.message || "").toLowerCase();
-      const ty = (n.type || "").toLowerCase();
-      return t.includes(q) || m.includes(q) || ty.includes(q);
-    });
+    return notifications.filter((n) =>
+      (n.title + n.message).toLowerCase().includes(q),
+    );
   }, [notifications, notifSearch]);
 
   const filteredGymUsers = useMemo(() => {
     const q = searchUser.trim().toLowerCase();
     if (!q) return gymUsers;
-
-    return gymUsers.filter((u) => {
-      const name = fullNameOf(u).toLowerCase();
-      const phone = (u.phone || "").toLowerCase();
-      const email = (u.email || "").toLowerCase();
-      return name.includes(q) || phone.includes(q) || email.includes(q);
-    });
+    return gymUsers.filter((u) =>
+      (fullNameOf(u) + u.phone + u.email).toLowerCase().includes(q),
+    );
   }, [gymUsers, searchUser]);
 
   const toggleEmail = (email: string) => {
@@ -418,12 +330,10 @@ const Navbar = () => {
   const canSend = useMemo(() => {
     if (!me) return false;
     if (!notifTitle.trim() || !notifMessage.trim()) return false;
-    if (!notifType || !isAllowedType(String(notifType))) return false;
     if (audience === "CUSTOM" && selectedEmails.length === 0) return false;
     return true;
   }, [me, notifTitle, notifMessage, notifType, audience, selectedEmails]);
 
-  /* ------------------ MARK READ ONE ------------------ */
   const markRead = async (id: number) => {
     if (isManager) return;
     try {
@@ -432,104 +342,70 @@ const Navbar = () => {
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
       );
       await loadUnreadCount();
-    } catch (e: any) {
-      setErr(normalizeErrorMessage(e, "Unable to mark as read."));
-    }
+    } catch (e: any) {}
   };
 
-  /* ------------------ READ ALL ------------------ */
   const readAll = async () => {
     if (isManager) return;
-    clearToast();
     try {
       await api.post(API.READ_ALL, {});
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
-      setOk("All notifications marked as read.");
-    } catch (e: any) {
-      setErr(normalizeErrorMessage(e, "Unable to mark all as read."));
-    }
+    } catch (e: any) {}
   };
 
-  /* ------------------ SEND (MANAGER) ------------------ */
   const sendNotification = async () => {
     clearToast();
-
-    const title = String(notifTitle ?? "").trim();
-    const message = String(notifMessage ?? "").trim();
-    const type = String(notifType ?? "")
-      .trim()
-      .toUpperCase();
-
-    if (!title) return setErr("Title bo‘sh bo‘lmasin.");
-    if (!message) return setErr("Message bo‘sh bo‘lmasin.");
-    if (!isAllowedType(type)) {
-      return setErr(
-        "Type must be one of: SYSTEM, PAYMENT, MEMBERSHIP, ATTENDANCE",
-      );
-    }
-
     setSending(true);
     try {
-      // fresh list
       const freshUsers = await loadMyGymUsers();
       const usersSource = freshUsers.length ? freshUsers : gymUsers;
-
       const allEmails = usersSource
         .map((u) => safeString(u.email).trim())
         .filter(Boolean);
-
-      const targetEmails =
-        audience === "ALL"
-          ? allEmails
-          : selectedEmails.map((x) => safeString(x).trim()).filter(Boolean);
+      const targetEmails = audience === "ALL" ? allEmails : selectedEmails;
 
       if (targetEmails.length === 0) {
-        setErr("Recipients list empty.");
+        setErr("Recipients empty.");
         return;
       }
 
-      // ✅ ONE clean payload (backend DTO shuni kutadi deb faraz qilamiz)
-      const payload = { title, message, type };
-
-      console.log(payload);
-
-      console.log("SEND PAYLOAD =>", payload);
-
-      await api.post(API.NOTIFY_GYM_USERS, payload);
-
-      setOk("Notification sent successfully.");
+      await api.post(API.NOTIFY_GYM_USERS, {
+        title: notifTitle,
+        message: notifMessage,
+        type: notifType,
+      });
+      setOk("Notification sent.");
       setAudience("ALL");
       setSelectedEmails([]);
       setSearchUser("");
     } catch (e: any) {
-      setErr(normalizeErrorMessage(e, "Unable to send notification."));
+      setErr(normalizeErrorMessage(e, "Failed to send."));
     } finally {
       setSending(false);
     }
   };
 
-  /* ------------------ LOGOUT ------------------ */
   const logout = () => {
     localStorage.removeItem("token");
     window.location.href = "/login";
   };
 
+  // --- RETURN QISMI (YANGI DIZAYNGA MOSLANDI) ---
   return (
     <>
       <Header>
         <Left>
-          <Title>Gym Manager Dashboard</Title>
-
-          <SearchBox>
-            <SearchIcon>🔍</SearchIcon>
-            <SearchInput placeholder="Search members, payments, activities..." />
-          </SearchBox>
+          {/* Sidebar Tugmasi */}
+          <MenuTrigger onClick={toggleSidebar}>
+            <FiMenu size={24} />
+          </MenuTrigger>
+          <Title>Dashboard</Title>
         </Left>
 
         <Right>
           <IconButton onClick={openNotifications} aria-label="Notifications">
-            🔔
+            <FiBell size={20} />
             {!isManager && unreadCount > 0 && <Badge>{unreadCount}</Badge>}
           </IconButton>
 
@@ -537,59 +413,41 @@ const Navbar = () => {
             <AvatarSmall $image={me?.image_url || undefined}>
               {!me?.image_url && displayInitials}
             </AvatarSmall>
-
-            <UserInfo>
-              <Name>{loadingMe ? "Loading..." : displayName}</Name>
-              <Role>{me?.role || "—"}</Role>
-            </UserInfo>
           </ProfileTrigger>
         </Right>
       </Header>
 
-      {/* ===================== PROFILE DRAWER ===================== */}
+      {/* --- ESKI LOGIKALI DRAWER --- */}
       {profileOpen && (
         <>
           <Overlay onClick={() => setProfileOpen(false)} />
-
           <Drawer>
             <DrawerHeader>
               <AvatarLarge $image={me?.image_url || undefined}>
                 {!me?.image_url && displayInitials}
               </AvatarLarge>
-
               <div>
                 <DrawerName>
                   {loadingMe ? "Loading..." : displayName}
                 </DrawerName>
                 <DrawerRole>{me?.role || "—"}</DrawerRole>
-                <DrawerHint>
-                  {me?.email || "—"} • Gym ID: {me?.gymId ?? "—"}
-                </DrawerHint>
+                <DrawerHint>{me?.email || "—"}</DrawerHint>
               </div>
             </DrawerHeader>
-
             <InfoSection>
               <InfoItem>
                 <InfoLabel>Email</InfoLabel>
-                <InfoValue>{me?.email || "—"}</InfoValue>
+                <InfoValue>{me?.email}</InfoValue>
               </InfoItem>
-
               <InfoItem>
                 <InfoLabel>Phone</InfoLabel>
-                <InfoValue>{me?.phone || "—"}</InfoValue>
+                <InfoValue>{me?.phone}</InfoValue>
               </InfoItem>
-
-              <InfoItem>
-                <InfoLabel>Date of Birth</InfoLabel>
-                <InfoValue>{me?.birthDate || "—"}</InfoValue>
-              </InfoItem>
-
               <InfoItem>
                 <InfoLabel>Role</InfoLabel>
-                <InfoValue>{me?.role || "—"}</InfoValue>
+                <InfoValue>{me?.role}</InfoValue>
               </InfoItem>
             </InfoSection>
-
             <DrawerFooter>
               <GhostButton onClick={() => setProfileOpen(false)}>
                 Close
@@ -600,7 +458,7 @@ const Navbar = () => {
         </>
       )}
 
-      {/* ===================== NOTIFICATION MODAL ===================== */}
+      {/* --- ESKI LOGIKALI MODAL --- */}
       {notifyOpen && (
         <>
           <Overlay
@@ -609,141 +467,72 @@ const Navbar = () => {
               clearToast();
             }}
           />
-
           <Modal>
             <ModalCard>
               <ModalHead>
                 <ModalTitle>
                   {isManager ? "Send notification" : "Notifications"}
                 </ModalTitle>
-
                 <HeadRight>
                   <Tabs>
                     {!isManager && (
                       <Tab
                         $active={tab === "INBOX"}
-                        onClick={async () => {
-                          clearToast();
-                          setTab("INBOX");
-                          await Promise.all([
-                            loadUnreadCount(),
-                            loadMyNotifications(),
-                          ]);
-                        }}
+                        onClick={() => setTab("INBOX")}
                       >
                         Inbox
                       </Tab>
                     )}
-
                     <Tab
                       $active={tab === "COMPOSE"}
-                      onClick={async () => {
-                        clearToast();
-                        setTab("COMPOSE");
-                        await loadMyGymUsers();
-                      }}
+                      onClick={() => setTab("COMPOSE")}
                     >
                       Compose
                     </Tab>
                   </Tabs>
-
-                  <CloseBtn
-                    onClick={() => {
-                      setNotifyOpen(false);
-                      clearToast();
-                    }}
-                  >
-                    ✕
-                  </CloseBtn>
+                  <CloseBtn onClick={() => setNotifyOpen(false)}>✕</CloseBtn>
                 </HeadRight>
               </ModalHead>
-
               <ModalBody>
-                {/* LEFT */}
                 {tab === "INBOX" && !isManager ? (
                   <Block>
                     <BlockTitle>
-                      Inbox{" "}
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 8,
-                          alignItems: "center",
-                        }}
-                      >
-                        {unreadCount > 0 && <Pill>Unread: {unreadCount}</Pill>}
-                        <SecondaryBtn onClick={readAll}>Read all</SecondaryBtn>
-                      </div>
+                      Inbox {unreadCount > 0 && <Pill>{unreadCount}</Pill>}
                     </BlockTitle>
-
                     <InboxSearch>
                       <Input
                         value={notifSearch}
                         onChange={(e) => setNotifSearch(e.target.value)}
-                        placeholder="Search notifications..."
+                        placeholder="Search..."
                       />
-                      <SecondaryBtn
-                        onClick={async () => {
-                          clearToast();
-                          await Promise.all([
-                            loadUnreadCount(),
-                            loadMyNotifications(),
-                          ]);
-                        }}
-                      >
-                        Refresh
-                      </SecondaryBtn>
                     </InboxSearch>
-
                     <InboxList>
-                      {notifLoading ? (
-                        <Small>Loading notifications...</Small>
-                      ) : filteredNotifications.length === 0 ? (
-                        <Small>No notifications.</Small>
-                      ) : (
-                        filteredNotifications.map((n) => (
-                          <InboxItem
-                            key={n.id}
-                            $unread={!n.isRead}
-                            onClick={() => {
-                              if (!n.isRead) markRead(n.id);
-                            }}
-                            title="Click to mark as read"
-                          >
-                            <InboxTop>
-                              <InboxTitle>
-                                {!n.isRead && <UnreadDot />}
-                                <strong>
-                                  {n.title} — #{n.id}
-                                </strong>
-                              </InboxTitle>
-                              <TypeChip>{n.type}</TypeChip>
-                            </InboxTop>
-
-                            <InboxMeta>
-                              {n.message}
-                              {"\n"}
-                              {formatTime(n.createdAt)}
-                            </InboxMeta>
-                          </InboxItem>
-                        ))
-                      )}
+                      {filteredNotifications.map((n) => (
+                        <InboxItem
+                          key={n.id}
+                          $unread={!n.isRead}
+                          onClick={() => !n.isRead && markRead(n.id)}
+                        >
+                          <InboxTop>
+                            <InboxTitle>
+                              <strong>{n.title}</strong>
+                            </InboxTitle>
+                            <TypeChip>{n.type}</TypeChip>
+                          </InboxTop>
+                          <InboxMeta>{n.message}</InboxMeta>
+                        </InboxItem>
+                      ))}
                     </InboxList>
-
-                    {err && <ErrorText>{err}</ErrorText>}
-                    {ok && <SuccessText>{ok}</SuccessText>}
                   </Block>
                 ) : (
-                  <Block>
-                    <BlockTitle>Message</BlockTitle>
-
-                    <Row>
-                      <div>
-                        <Small>Template</Small>
+                  <>
+                    <Block>
+                      <BlockTitle>Compose</BlockTitle>
+                      <Row>
                         <Select
                           value={templateKey}
                           onChange={(e) =>
-                            setTemplateKey(e.target.value as TemplateKey)
+                            setTemplateKey(e.target.value as any)
                           }
                         >
                           {templates.map((t) => (
@@ -752,142 +541,75 @@ const Navbar = () => {
                             </option>
                           ))}
                         </Select>
-                      </div>
-
-                      <div>
-                        <Small>Audience</Small>
                         <Select
                           value={audience}
-                          onChange={(e) => {
-                            const v = e.target.value as Audience;
-                            setAudience(v);
-                            if (v === "ALL") setSelectedEmails([]);
-                          }}
+                          onChange={(e) => setAudience(e.target.value as any)}
                         >
-                          <option value="ALL">All gym users</option>
-                          <option value="CUSTOM">Select users</option>
+                          <option value="ALL">All</option>
+                          <option value="CUSTOM">Select</option>
                         </Select>
+                      </Row>
+                      <div style={{ marginTop: 12 }}>
+                        <Input
+                          value={notifTitle}
+                          onChange={(e) => setNotifTitle(e.target.value)}
+                        />
                       </div>
-                    </Row>
-
-                    <div style={{ marginTop: 12 }}>
-                      <Small>Type</Small>
-                      <Select
-                        value={notifType}
-                        onChange={(e) =>
-                          setNotifType(e.target.value as NotifType)
-                        }
-                      >
-                        {TYPE_OPTIONS.map((t) => (
-                          <option key={t} value={t}>
-                            {t}
-                          </option>
-                        ))}
-                      </Select>
-                      <Small>
-                        Allowed: SYSTEM, PAYMENT, MEMBERSHIP, ATTENDANCE
-                      </Small>
-                    </div>
-
-                    <div style={{ marginTop: 12 }}>
-                      <Small>Title</Small>
-                      <Input
-                        value={notifTitle}
-                        onChange={(e) => setNotifTitle(e.target.value)}
-                        placeholder="Notification title"
-                      />
-                    </div>
-
-                    <div style={{ marginTop: 12 }}>
-                      <Small>Message</Small>
-                      <Textarea
-                        value={notifMessage}
-                        onChange={(e) => setNotifMessage(e.target.value)}
-                        placeholder="Write your message..."
-                      />
-
-                      <Small>
-                        {audience === "ALL"
-                          ? "This message will be sent to all users in your gym."
-                          : `This message will be sent to selected users (${selectedEmails.length}).`}
-                      </Small>
-
-                      {err && <ErrorText>{err}</ErrorText>}
+                      <div style={{ marginTop: 12 }}>
+                        <Textarea
+                          value={notifMessage}
+                          onChange={(e) => setNotifMessage(e.target.value)}
+                        />
+                      </div>
+                      {err && <ErrorText>{err}</ErrorText>}{" "}
                       {ok && <SuccessText>{ok}</SuccessText>}
-                    </div>
-                  </Block>
-                )}
-
-                {/* RIGHT */}
-                <Block>
-                  <BlockTitle>
-                    Recipients{" "}
-                    {audience === "CUSTOM" && (
-                      <Pill>Selected: {selectedEmails.length}</Pill>
-                    )}
-                  </BlockTitle>
-
-                  {audience === "ALL" ? (
-                    <Small>
-                      All users returned by <b>/api/users/get-my-gym-users</b>{" "}
-                      will receive the notification.
-                    </Small>
-                  ) : (
-                    <>
-                      <Small>Search users</Small>
-                      <Input
-                        value={searchUser}
-                        onChange={(e) => setSearchUser(e.target.value)}
-                        placeholder="Search by name, phone, email..."
-                      />
-
-                      <MemberList>
-                        {loadingGymUsers ? (
-                          <Small>Loading gym users...</Small>
-                        ) : filteredGymUsers.length === 0 ? (
-                          <Small>No users found.</Small>
-                        ) : (
-                          filteredGymUsers.map((u) => {
-                            const email = safeString(u.email).trim();
-                            const checked = selectedEmails.includes(email);
-
-                            return (
-                              <MemberItem key={email}>
+                    </Block>
+                    <Block>
+                      <BlockTitle>
+                        Recipients{" "}
+                        {audience === "CUSTOM" && (
+                          <Pill>{selectedEmails.length}</Pill>
+                        )}
+                      </BlockTitle>
+                      {audience === "ALL" ? (
+                        <Small>All users will receive this.</Small>
+                      ) : (
+                        <>
+                          <Input
+                            value={searchUser}
+                            onChange={(e) => setSearchUser(e.target.value)}
+                            placeholder="Search users..."
+                          />
+                          <MemberList>
+                            {filteredGymUsers.map((u) => (
+                              <MemberItem key={u.email}>
                                 <Checkbox
                                   type="checkbox"
-                                  checked={checked}
-                                  onChange={() => toggleEmail(email)}
+                                  checked={selectedEmails.includes(
+                                    safeString(u.email),
+                                  )}
+                                  onChange={() =>
+                                    toggleEmail(safeString(u.email))
+                                  }
                                 />
                                 <MemberMeta>
                                   <MemberName>{fullNameOf(u)}</MemberName>
-                                  <MemberSub>
-                                    {u.phone || "—"} • {email}
-                                  </MemberSub>
+                                  <MemberSub>{u.email}</MemberSub>
                                 </MemberMeta>
                               </MemberItem>
-                            );
-                          })
-                        )}
-                      </MemberList>
-                    </>
-                  )}
-                </Block>
+                            ))}
+                          </MemberList>
+                        </>
+                      )}
+                    </Block>
+                  </>
+                )}
               </ModalBody>
-
               <Footer>
-                <SecondaryBtn
-                  onClick={() => {
-                    setNotifyOpen(false);
-                    clearToast();
-                  }}
-                >
+                <SecondaryBtn onClick={() => setNotifyOpen(false)}>
                   Cancel
                 </SecondaryBtn>
-
-                <PrimaryBtn
-                  onClick={sendNotification}
-                  disabled={!canSend || sending}
-                >
+                <PrimaryBtn onClick={sendNotification} disabled={sending}>
                   {sending ? "Sending..." : "Send"}
                 </PrimaryBtn>
               </Footer>

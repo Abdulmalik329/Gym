@@ -1,128 +1,24 @@
 import React, { useCallback, useEffect, useState } from "react";
-import styled from "styled-components";
-
-/* ================= STYLED COMPONENTS ================= */
-
-const Wrapper = styled.div`
-  background: linear-gradient(180deg, #0f1318, #0b0e13);
-  border-radius: 20px;
-  border: 1px solid #1f2937;
-  padding: 24px;
-`;
-
-const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 18px;
-`;
-
-const Title = styled.h2`
-  color: #fff;
-  font-size: 20px;
-  font-weight: 600;
-`;
-
-const Controls = styled.div`
-  display: flex;
-  gap: 10px;
-`;
-
-const ActionBtn = styled.button`
-  background: #111827;
-  border: 1px solid #1f2937;
-  color: #fff;
-  padding: 8px 14px;
-  border-radius: 10px;
-  font-size: 13px;
-  cursor: pointer;
-
-  &:hover {
-    opacity: 0.9;
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
-
-const Table = styled.div`
-  width: 100%;
-`;
-
-const Row = styled.div`
-  display: grid;
-  grid-template-columns: 2.2fr 1.6fr 1.2fr 1.2fr 1fr;
-  align-items: center;
-  padding: 16px 12px;
-  border-bottom: 1px solid #1f2937;
-`;
-
-const HeadRow = styled(Row)`
-  padding: 12px;
-  font-size: 12px;
-  color: #64748b;
-  text-transform: uppercase;
-`;
-
-const Cell = styled.div`
-  font-size: 14px;
-  color: #e5e7eb;
-`;
-
-const Member = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-`;
-
-const Avatar = styled.div`
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: #2563eb;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  color: white;
-`;
-
-const Name = styled.div`
-  font-weight: 600;
-  color: #fff;
-`;
-
-const Sub = styled.div`
-  font-size: 12px;
-  color: #64748b;
-`;
-
-const Footer = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 14px;
-  font-size: 12px;
-  color: #64748b;
-`;
-
-const ErrorText = styled.div`
-  color: #fecaca;
-  margin-bottom: 12px;
-  font-size: 13px;
-`;
-
-const Loading = styled.div`
-  color: #fff;
-  padding: 12px 0;
-`;
-
-/* ================= TYPES ================= */
-
+import {
+  Wrapper,
+  Header,
+  Title,
+  Controls,
+  ActionBtn,
+  Table,
+  HeadRow,
+  Row,
+  Cell,
+  Member,
+  Avatar,
+  Name,
+  Sub,
+  Footer,
+  ErrorText,
+  Loading,
+} from "./MemberManagement.styled";
 type GymUserApi = {
-  id?: number; // ✅ backend id
+  id?: number; 
   firstName?: string;
   lastName?: string;
   email?: string;
@@ -130,14 +26,13 @@ type GymUserApi = {
 };
 
 type MemberRow = {
-  id: number; // ✅ backend id
+  id: number; 
   fullName: string;
   email: string;
   phone: string;
   status: "ACTIVE";
 };
 
-/* ================= HELPERS ================= */
 
 const API_URL = "https://nt-gym-api.it-mahalla.uz/api/users/get-my-gym-users";
 
@@ -297,9 +192,8 @@ const MemberManagement: React.FC = () => {
                 <Cell>{m.phone}</Cell>
                 <Cell>{m.status}</Cell>
 
-                {/* ✅ Actions column: faqat ID */}
                 <Cell style={{ color: "#94a3b8", fontWeight: 700 }}>
-                  #{m.id}
+                  {m.id}
                 </Cell>
               </Row>
             ))

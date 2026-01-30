@@ -2,10 +2,10 @@ import { Routes, Route } from "react-router-dom";
 import DashboardLayout from "../components/layout/DashboardLayout";
 
 import Dashboard from "../pages/Dashboard/Dashboard";
-import MemberManagement from "../pages/Dashboard/MemberManagement";
+import MemberManagement from "../pages/Members/MembersTable/MemberManagement";
 import Settings from "../pages/Settings/Settings";
 import CreateMember from "../pages/Members/CreateMember/CreateMember";
-import ReportsMain from "../pages/Reports/ReportsMain";
+import ReportsMain from "../pages/Reports/Reports";
 
 const ManagerRoutes = () => (
   <Routes>

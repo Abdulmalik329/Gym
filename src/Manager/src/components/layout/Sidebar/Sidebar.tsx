@@ -1,132 +1,72 @@
-import styled from "styled-components";
-import { NavLink, useNavigate } from "react-router-dom";
+import React from "react";
+// Agar react-icons bo'lmasa o'rnating: npm install react-icons
+import {
+  FiGrid,
+  FiUsers,
+  FiPieChart,
+  FiSettings,
+  FiLogOut,
+  FiCheck,
+} from "react-icons/fi";
+import {
+  Container,
+  LogoWrapper,
+  LogoIcon,
+  LogoText,
+  Menu,
+  MenuItem,
+  ItemText,
+  LogoutBtn,
+} from "./Sidebar.styled";
 
-const Container = styled.aside`
-  width: 260px;
-  background: #111418;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 100vh;
-  color: ${({ theme }) => theme.colors.text};
-`;
+interface Props {
+  isOpen: boolean;
+}
 
-const TopSection = styled.div``;
-
-const Title = styled.h1`
-  font-weight: 700;
-  font-size: 20px;
-  color: #3b82f6;
-  margin-bottom: 4px;
-`;
-
-const Subtitle = styled.p`
-  font-size: 14px;
-  color: ${({ theme }) => theme.colors.muted};
-  margin-bottom: 24px;
-`;
-
-const Menu = styled.nav`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const MenuItem = styled(NavLink)`
-  padding: 12px 16px;
-  border-radius: 10px;
-  color: ${({ theme }) => theme.colors.muted};
-  text-decoration: none;
-  font-weight: 500;
-
-  &.active {
-    background: ${({ theme }) => theme.colors.card};
-    color: ${({ theme }) => theme.colors.text};
-  }
-
-  &:hover {
-    background: ${({ theme }) => theme.colors.card};
-    color: ${({ theme }) => theme.colors.text};
-  }
-`;
-
-const BottomSection = styled.div`
-  margin-top: auto;
-`;
-
-const StorageUsageContainer = styled.div`
-  background: #1c2229;
-  border-radius: 12px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-`;
-
-const StorageLabel = styled.p`
-  font-size: 14px;
-  color: ${({ theme }) => theme.colors.muted};
-  margin-bottom: 6px;
-`;
-
-const StorageBar = styled.div`
-  background: ${({ theme }) => theme.colors.border};
-  height: 8px;
-  border-radius: 8px;
-  overflow: hidden;
-`;
-
-const StorageFill = styled.div`
-  height: 100%;
-  width: 68%;
-  background: ${({ theme }) => theme.colors.primary};
-`;
-
-const StorageText = styled.p`
-  font-size: 12px;
-  color: ${({ theme }) => theme.colors.text};
-  margin-top: 6px;
-  font-weight: 600;
-  text-align: right;
-`;
-
-const CheckinButton = styled.button`
-  width: 100%;
-  background: ${({ theme }) => theme.colors.primary};
-  color: ${({ theme }) => theme.colors.text};
-  padding: 12px 0;
-  border: none;
-  border-radius: 10px;
-  font-weight: 700;
-  cursor: pointer;
-
-  &:hover {
-    background: #2563eb;
-  }
-`;
-
-const Sidebar = () => {
-  const navigate = useNavigate();
-
+const Sidebar: React.FC<Props> = ({ isOpen }) => {
   return (
-    <Container>
-      <TopSection>
-        <Title>Gym Bros</Title>
-        <Subtitle>Downtown Branch Manager</Subtitle>
+    <Container isOpen={isOpen}>
+      <LogoWrapper isOpen={isOpen}>
+        <LogoIcon>
+          <FiCheck size={18} strokeWidth={4} />
+        </LogoIcon>
+        <LogoText isOpen={isOpen}>
+          Gym<span>Bros</span>
+        </LogoText>
+      </LogoWrapper>
 
-        <Menu>
-          <MenuItem to="/manager/dashboard">Dashboard</MenuItem>
-          <MenuItem to="/manager/members">Members</MenuItem>
-          <MenuItem to="/manager/reports">Reports</MenuItem>
-          <MenuItem to="/manager/settings">Settings</MenuItem>
-        </Menu>
-      </TopSection>
+      <Menu>
+        <MenuItem to="/manager/dashboard" isOpen={isOpen}>
+          <FiGrid size={22} />
+          <ItemText isOpen={isOpen}>Dashboard</ItemText>
+        </MenuItem>
 
-      <BottomSection>
+        <MenuItem to="/manager/members" isOpen={isOpen}>
+          <FiUsers size={22} />
+          <ItemText isOpen={isOpen}>Members</ItemText>
+        </MenuItem>
 
-        <CheckinButton onClick={() => navigate("/manager/members/create")}>
-          Check-in Member
-        </CheckinButton>
-      </BottomSection>
+        <MenuItem to="/manager/reports" isOpen={isOpen}>
+          <FiPieChart size={22} />
+          <ItemText isOpen={isOpen}>Reports</ItemText>
+        </MenuItem>
+
+        <MenuItem to="/manager/settings" isOpen={isOpen}>
+          <FiSettings size={22} />
+          <ItemText isOpen={isOpen}>Settings</ItemText>
+        </MenuItem>
+      </Menu>
+
+      <LogoutBtn
+        isOpen={isOpen}
+        onClick={() => {
+          localStorage.removeItem("token");
+          window.location.href = "/login";
+        }}
+      >
+        <FiLogOut size={20} />
+        <ItemText isOpen={isOpen}>Logout</ItemText>
+      </LogoutBtn>
     </Container>
   );
 };
