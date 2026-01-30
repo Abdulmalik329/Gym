@@ -7,6 +7,7 @@ import {
   FiSettings,
   FiLogOut,
   FiCheck,
+  FiCreditCard,
 } from "react-icons/fi";
 import {
   Container,
@@ -44,6 +45,11 @@ const Sidebar: React.FC<Props> = ({ isOpen }) => {
         <MenuItem to="/manager/members" isOpen={isOpen}>
           <FiUsers size={22} />
           <ItemText isOpen={isOpen}>Members</ItemText>
+        </MenuItem>
+
+        <MenuItem to="/manager/payments" isOpen={isOpen}>
+          <FiCreditCard size={22} />
+          <ItemText isOpen={isOpen}>Payments</ItemText>
         </MenuItem>
 
         <MenuItem to="/manager/reports" isOpen={isOpen}>
