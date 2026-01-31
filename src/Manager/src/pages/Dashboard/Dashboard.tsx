@@ -8,6 +8,8 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  AreaChart,
+  Area,
 } from "recharts";
 import {
   FiUsers,
@@ -15,6 +17,8 @@ import {
   FiTrendingUp,
   FiTrendingDown,
   FiCheckCircle,
+  FiDollarSign,
+  FiAlertCircle,
 } from "react-icons/fi";
 import {
   Container,
@@ -34,35 +38,85 @@ import {
   LargeValue,
   ProgressBar,
   ProgressFill,
+  ChartsGrid,
+  ChartCard,
+  SectionTitle,
+  ExpiringList,
+  ExpiringItem,
 } from "./Dashboard.styled";
 
 // --- TYPES ---
-interface DashboardData {
+interface GymManagerStats {
   stats: {
     attendance: { value: number; target: number; percent_change: number };
     new_members: { value: number; percent_change: number };
-    // pending_payments kerak emas
   };
   heatmap: { date: string; count: number }[];
   active_members_total: number;
 }
 
+interface GeneralReport {
+  monthly_revenue: string; // API string qaytarmoqda "4865000"
+  active_members_count: number;
+  today_attendance_count: number;
+  users_expiring_soon: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    daysLeft: number; // Agar backend hisoblab bersa, yoki endDate dan hisoblaymiz
+    endDate: string;
+  }[];
+}
+
+interface RevenueChartItem {
+  month: string; // "2026-01"
+  amount: number;
+}
+
+const BASE_URL = "https://nt-gym-api.it-mahalla.uz/api";
+const GYM_ID = 1;
+
 const Dashboard = () => {
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [stats, setStats] = useState<GymManagerStats | null>(null);
+  const [report, setReport] = useState<GeneralReport | null>(null);
+  const [revenueChart, setRevenueChart] = useState<RevenueChartItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // API Call
+  // Currency formatter
+  const formatMoney = (amount: number | string) => {
+    return new Intl.NumberFormat("uz-UZ", {
+      style: "currency",
+      currency: "UZS",
+      maximumFractionDigits: 0,
+    }).format(Number(amount));
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get(
-          "https://nt-gym-api.it-mahalla.uz/api/reports/gym-manager-stats?gym_id=1",
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        setData(res.data);
+        const headers = { Authorization: `Bearer ${token}` };
+
+        // 3 ta API ni parallel chaqiramiz
+        const [statsRes, reportRes, revChartRes] = await Promise.all([
+          axios.get(`${BASE_URL}/reports/gym-manager-stats?gym_id=${GYM_ID}`, {
+            headers,
+          }),
+          axios.get(`${BASE_URL}/reports/gym-manager?gym_id=${GYM_ID}`, {
+            headers,
+          }),
+          axios.get(
+            `${BASE_URL}/reports/gym-manager/revenue-chart?gym_id=${GYM_ID}`,
+            { headers },
+          ),
+        ]);
+
+        setStats(statsRes.data);
+        setReport(reportRes.data);
+        setRevenueChart(revChartRes.data);
       } catch (err) {
-        console.error("Error fetching dashboard stats", err);
+        console.error("Error fetching dashboard data", err);
       } finally {
         setLoading(false);
       }
@@ -77,32 +131,35 @@ const Dashboard = () => {
         <Title>Yuklanmoqda...</Title>
       </Container>
     );
-  if (!data)
+  if (!stats || !report)
     return (
       <Container>
         <Title>Ma'lumot topilmadi</Title>
       </Container>
     );
 
-  // Data helpers
-  const { attendance, new_members } = data.stats;
-  const totalMembers = data.active_members_total;
+  // Data extraction
+  const { attendance, new_members } = stats.stats;
+  const totalMembers = stats.active_members_total; // Yoki report.active_members_count
 
-  // Chart data formatlash
-  const chartData = data.heatmap.map((item) => {
-    const date = new Date(item.date);
-    return {
-      name: date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
-      count: item.count,
-    };
-  });
+  // 1. Attendance Chart Data
+  const attendanceData = stats.heatmap.map((item) => ({
+    name: new Date(item.date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    }),
+    count: item.count,
+  }));
 
-  // Progress bar foizi
+  // 2. Revenue Chart Data
+  const revenueData = revenueChart.map((item) => ({
+    name: item.month, // "2026-01" -> Formatlash mumkin
+    amount: Number(item.amount),
+  }));
+
+  // Progress calculations
   const attendancePercent = Math.min(
-    (attendance.value / (attendance.target || 1)) * 100,
+    (attendance.value / (attendance.target || 20)) * 100,
     100,
   );
 
@@ -110,12 +167,12 @@ const Dashboard = () => {
     <Container>
       <Header>
         <div>
-          <Title>Dashboard</Title>
+          <Title>Gym Dashboard</Title>
           <DateText>{new Date().toDateString()}</DateText>
         </div>
       </Header>
 
-      {/* --- TEPADAGI 2 TA KARTA (Obshi soni va Yangilar) --- */}
+      {/* --- TOP STATISTICS (3 CARDS) --- */}
       <TopGrid>
         {/* 1. Total Members */}
         <StatCard>
@@ -154,106 +211,209 @@ const Dashboard = () => {
             <StatValue>{new_members.value}</StatValue>
           </div>
           <ProgressBar>
-            <ProgressFill $width={70} $color="#10b981" />
+            <ProgressFill
+              $width={Math.min(new_members.value * 10, 100)}
+              $color="#10b981"
+            />
+          </ProgressBar>
+        </StatCard>
+
+        {/* 3. Monthly Revenue (Yangi) */}
+        <StatCard>
+          <StatHeader>
+            <IconBox $bg="rgba(245, 158, 11, 0.1)" $color="#f59e0b">
+              <FiDollarSign />
+            </IconBox>
+            <PercentBadge $isPositive={true}>This Month</PercentBadge>
+          </StatHeader>
+          <div>
+            <StatLabel>Monthly Revenue</StatLabel>
+            <StatValue style={{ fontSize: "28px" }}>
+              {formatMoney(report.monthly_revenue)}
+            </StatValue>
+          </div>
+          <ProgressBar>
+            <ProgressFill $width={100} $color="#f59e0b" />
           </ProgressBar>
         </StatCard>
       </TopGrid>
 
-      {/* --- PASTKI ATTENDANCE QISMI (Toliq) --- */}
-      <AttendanceSection>
-        {/* Chap tomon: Raqamlar */}
-        <AttendanceInfo>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              marginBottom: "10px",
-            }}
-          >
-            <IconBox
-              $bg="rgba(59, 130, 246, 0.1)"
-              $color="#3b82f6"
-              style={{ width: "48px", height: "48px" }}
-            >
-              <FiCheckCircle />
-            </IconBox>
-            <h2 style={{ color: "white", fontSize: "20px" }}>
-              Daily Attendance
-            </h2>
-          </div>
-
-          <div>
-            <StatLabel style={{ marginBottom: "8px" }}>
-              Today's Visits
-            </StatLabel>
-            <LargeValue>
-              {attendance.value} <span>/ {attendance.target} target</span>
-            </LargeValue>
-          </div>
-
-          <div>
+      {/* --- MIDDLE CHARTS SECTION --- */}
+      <ChartsGrid>
+        {/* Left: Attendance (Detailed) */}
+        <AttendanceSection>
+          <AttendanceInfo>
             <div
               style={{
                 display: "flex",
-                justifyContent: "space-between",
-                marginBottom: "6px",
+                alignItems: "center",
+                gap: "12px",
+                marginBottom: "10px",
               }}
             >
-              <span style={{ color: "#94a3b8", fontSize: "14px" }}>
-                Capacity Reached
-              </span>
-              <span style={{ color: "#3b82f6", fontWeight: "bold" }}>
-                {Math.round(attendancePercent)}%
-              </span>
+              <IconBox
+                $bg="rgba(59, 130, 246, 0.1)"
+                $color="#3b82f6"
+                style={{ width: "48px", height: "48px" }}
+              >
+                <FiCheckCircle />
+              </IconBox>
+              <h2 style={{ color: "white", fontSize: "18px", margin: 0 }}>
+                Attendance
+              </h2>
             </div>
-            <ProgressBar style={{ height: "12px" }}>
-              <ProgressFill $width={attendancePercent} $color="#3b82f6" />
-            </ProgressBar>
-          </div>
-        </AttendanceInfo>
 
-        {/* O'ng tomon: Grafik */}
-        <AttendanceChartWrapper>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="#374151"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="name"
-                stroke="#9ca3af"
-                tick={{ fontSize: 12 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                stroke="#9ca3af"
-                tick={{ fontSize: 12 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip
-                cursor={{ fill: "rgba(59, 130, 246, 0.1)" }}
-                contentStyle={{
-                  backgroundColor: "#111418",
-                  border: "1px solid #374151",
-                  borderRadius: "8px",
+            <div>
+              <StatLabel style={{ marginBottom: "8px" }}>
+                Today's Visits
+              </StatLabel>
+              <LargeValue>
+                {attendance.value}{" "}
+                <span>/ {attendance.target || 20} target</span>
+              </LargeValue>
+            </div>
+
+            <div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: "12px",
+                  color: "#94a3b8",
+                  marginBottom: "5px",
                 }}
-                itemStyle={{ color: "#fff" }}
-              />
-              <Bar
-                dataKey="count"
-                fill="#3b82f6"
-                radius={[6, 6, 0, 0]}
-                barSize={40}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </AttendanceChartWrapper>
-      </AttendanceSection>
+              >
+                <span>Daily Goal</span>
+                <span>{Math.round(attendancePercent)}%</span>
+              </div>
+              <ProgressBar style={{ height: "8px" }}>
+                <ProgressFill $width={attendancePercent} $color="#3b82f6" />
+              </ProgressBar>
+            </div>
+          </AttendanceInfo>
+
+          <AttendanceChartWrapper>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={attendanceData}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#374151"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="name"
+                  stroke="#9ca3af"
+                  tick={{ fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  cursor={{ fill: "rgba(59, 130, 246, 0.1)" }}
+                  contentStyle={{
+                    backgroundColor: "#111418",
+                    border: "1px solid #374151",
+                    borderRadius: "8px",
+                  }}
+                />
+                <Bar
+                  dataKey="count"
+                  fill="#3b82f6"
+                  radius={[4, 4, 0, 0]}
+                  barSize={30}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </AttendanceChartWrapper>
+        </AttendanceSection>
+
+        {/* Right: Revenue Trend (Yangi) */}
+        <ChartCard>
+          <SectionTitle>Revenue Trend</SectionTitle>
+          <div style={{ width: "100%", height: "250px" }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={revenueData}>
+                <defs>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis
+                  dataKey="name"
+                  stroke="#9ca3af"
+                  tick={{ fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  stroke="#9ca3af"
+                  tick={{ fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(value) => `${value / 1000}k`}
+                />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#374151"
+                  vertical={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#111418",
+                    border: "1px solid #374151",
+                    borderRadius: "8px",
+                  }}
+                  formatter={(value: any) => formatMoney(value)}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="amount"
+                  stroke="#f59e0b"
+                  fillOpacity={1}
+                  fill="url(#colorRevenue)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+      </ChartsGrid>
+
+      {/* --- BOTTOM SECTION: EXPIRING MEMBERS --- */}
+      <ChartCard style={{ marginTop: "0" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            marginBottom: "20px",
+          }}
+        >
+          <FiAlertCircle color="#ef4444" size={20} />
+          <SectionTitle style={{ marginBottom: 0 }}>Expiring Soon</SectionTitle>
+        </div>
+
+        {report.users_expiring_soon.length === 0 ? (
+          <div style={{ color: "#64748b", fontStyle: "italic" }}>
+            No memberships expiring soon.
+          </div>
+        ) : (
+          <ExpiringList>
+            {report.users_expiring_soon.map((user) => (
+              <ExpiringItem key={user.id}>
+                <div className="user-info">
+                  <div className="name">
+                    {user.firstName} {user.lastName}
+                  </div>
+                  <div className="phone">{user.phone}</div>
+                </div>
+                <div className="date-info">
+                  Expires: {new Date(user.endDate).toLocaleDateString()}
+                </div>
+              </ExpiringItem>
+            ))}
+          </ExpiringList>
+        )}
+      </ChartCard>
     </Container>
   );
 };

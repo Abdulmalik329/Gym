@@ -7,6 +7,7 @@ import Settings from "../pages/Settings/Settings";
 import CreateMember from "../pages/Members/CreateMember/CreateMember";
 import ReportsMain from "../pages/Reports/Reports";
 import Payments from "../pages/Payments/Payments";
+import MembershipPalns from "../pages/MembershipPlans";
 
 const ManagerRoutes = () => (
   <Routes>
@@ -18,8 +19,9 @@ const ManagerRoutes = () => (
         <Route path="create" element={<CreateMember />} />
       </Route>
       <Route path="payments" element={<Payments />} />
-      <Route path ="reports" element={<ReportsMain />} />
+      <Route path="reports" element={<ReportsMain />} />
       <Route path="settings" element={<Settings />} />
+      <Route path="membership-plans" element={<MembershipPalns />} />
 
       <Route path="*" element={<div>404 Not Found </div>} />
     </Route>

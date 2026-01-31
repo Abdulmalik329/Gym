@@ -1,131 +1,81 @@
 import styled from "styled-components";
 
-/* ================= STYLED COMPONENTS ================= */
-
 export const Wrapper = styled.div`
-  background: linear-gradient(180deg, #0f1318, #0b0e13);
-  border-radius: 20px;
+  background: #0f1318;
+  border-radius: 12px;
   border: 1px solid #1f2937;
   padding: 24px;
-
-  /* Mobil uchun paddingni kamaytiramiz */
-  @media (max-width: 768px) {
-    padding: 16px;
-  }
 `;
 
 export const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 18px;
-
-  /* Mobil uchun: Sarlavha va tugmalarni ustma-ust tushirish */
-  @media (max-width: 600px) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
+  margin-bottom: 20px;
 `;
 
 export const Title = styled.h2`
   color: #fff;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
-
-  @media (max-width: 600px) {
-    font-size: 18px;
-  }
+  margin: 0;
 `;
 
 export const Controls = styled.div`
   display: flex;
   gap: 10px;
-
-  /* Mobil uchun: Tugmalarni to'liq ekranga yoyish */
-  @media (max-width: 600px) {
-    width: 100%;
-    justify-content: space-between;
-  }
 `;
 
 export const ActionBtn = styled.button`
-  background: #111827;
-  border: 1px solid #1f2937;
-  color: #fff;
-  padding: 8px 14px;
-  border-radius: 10px;
+  background: #1f2937;
+  border: 1px solid #374151;
+  color: #e5e7eb;
+  padding: 8px 16px;
+  border-radius: 6px;
   font-size: 13px;
   cursor: pointer;
-  white-space: nowrap; /* Matnni sig'dirish uchun */
+  transition: 0.2s;
 
   &:hover {
-    opacity: 0.9;
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  @media (max-width: 600px) {
-    flex: 1; /* Tugmalar teng bo'linadi */
-    display: flex;
-    justify-content: center;
+    background: #374151;
+    color: #fff;
   }
 `;
 
 export const Table = styled.div`
   width: 100%;
-  /* RESPONSIVE TABLE MAGIC */
-  overflow-x: auto; /* Sig'masa scroll bo'ladi */
-
-  /* Scrollbar dizayni (Dark mode) */
-  &::-webkit-scrollbar {
-    height: 8px;
-  }
-  &::-webkit-scrollbar-track {
-    background: #111827;
-    border-radius: 4px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: #374151;
-    border-radius: 4px;
-  }
-  &::-webkit-scrollbar-thumb:hover {
-    background: #4b5563;
-  }
+  overflow-x: auto;
 `;
 
 export const Row = styled.div`
   display: grid;
-  /* Grid ustunlar o'lchami */
-  grid-template-columns: 2.2fr 1.6fr 1.2fr 1.2fr 0.8fr;
+  grid-template-columns: 2fr 1.5fr 1fr 1.5fr;
   align-items: center;
-  padding: 16px 12px;
+  padding: 14px 12px;
   border-bottom: 1px solid #1f2937;
-
-  /* MUHIM: Jadval minimal kengligi. 
-     Agar ekran bundan kichik bo'lsa, scroll paydo bo'ladi.
-     Bu jadval siqilib xunuk bo'lib qolishini oldini oladi. */
   min-width: 800px;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
 `;
 
 export const HeadRow = styled(Row)`
   padding: 12px;
-  font-size: 12px;
-  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  color: #9ca3af;
   text-transform: uppercase;
-  background-color: rgba(17, 24, 39, 0.5); /* Header foni */
-  border-radius: 8px 8px 0 0;
+  background-color: #111827;
+  border-radius: 6px 6px 0 0;
+  border-bottom: none;
 `;
 
 export const Cell = styled.div`
   font-size: 14px;
-  color: #e5e7eb;
-  white-space: nowrap; /* So'zlar pastga tushib ketmasligi uchun */
+  color: #d1d5db;
   overflow: hidden;
-  text-overflow: ellipsis; /* Sig'masa ... qo'yadi */
+  text-overflow: ellipsis;
   padding-right: 10px;
 `;
 
@@ -136,51 +86,163 @@ export const Member = styled.div`
 `;
 
 export const Avatar = styled.div`
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: #2563eb;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
   color: white;
-  flex-shrink: 0; /* Avatar ezilib qolmasligi uchun */
+  font-size: 14px;
+  font-weight: 600;
 `;
 
 export const Name = styled.div`
-  font-weight: 600;
-  color: #fff;
+  font-weight: 500;
+  color: #f3f4f6;
 `;
 
 export const Sub = styled.div`
   font-size: 12px;
-  color: #64748b;
+  color: #6b7280;
 `;
 
-export const Footer = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 14px;
+// --- STATUS BADGE (CLICKABLE) ---
+export const StatusBadge = styled.button<{ $active: boolean }>`
+  background-color: ${(props) =>
+    props.$active ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)"};
+  color: ${(props) => (props.$active ? "#34d399" : "#f87171")};
+  padding: 4px 10px;
+  border-radius: 20px;
   font-size: 12px;
-  color: #64748b;
+  font-weight: 500;
+  border: 1px solid
+    ${(props) =>
+      props.$active ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)"};
+  cursor: pointer;
+  transition: all 0.2s;
 
-  @media (max-width: 600px) {
-    flex-direction: column;
-    gap: 8px;
-    align-items: flex-start;
+  &:hover {
+    opacity: 0.8;
+    transform: scale(1.05);
   }
 `;
 
+export const BtnGroup = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+export const IconBtn = styled.button<{ $variant: "primary" | "secondary" }>`
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  font-size: 12px;
+  cursor: pointer;
+  color: #fff;
+  background-color: ${(props) =>
+    props.$variant === "primary" ? "#2563eb" : "#374151"};
+  transition: 0.2s;
+
+  &:hover {
+    background-color: ${(props) =>
+      props.$variant === "primary" ? "#1d4ed8" : "#4b5563"};
+  }
+
+  &:disabled {
+    background-color: #1f2937;
+    color: #4b5563;
+    cursor: not-allowed;
+  }
+`;
+
+export const Footer = styled.div`
+  padding-top: 16px;
+  font-size: 12px;
+  color: #6b7280;
+`;
+
 export const ErrorText = styled.div`
-  color: #fecaca;
+  color: #f87171;
   margin-bottom: 12px;
   font-size: 13px;
 `;
 
 export const Loading = styled.div`
-  color: #fff;
-  padding: 12px 0;
-  text-align: center; /* Loading o'rtada turishi uchun */
+  color: #9ca3af;
+  padding: 20px;
+  text-align: center;
+  font-size: 13px;
+`;
+
+// Modal Styles
+export const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
+`;
+
+export const ModalContent = styled.div`
+  background: #1f2937;
+  width: 400px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #374151;
+`;
+
+export const ModalHeader = styled.div`
+  padding: 16px;
+  background: #111827;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #374151;
+
+  h3 {
+    color: #fff;
+    font-size: 15px;
+    margin: 0;
+  }
+`;
+
+export const CloseBtn = styled.button`
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 20px;
+  cursor: pointer;
+  &:hover {
+    color: #fff;
+  }
+`;
+
+export const ModalBody = styled.div`
+  max-height: 400px;
+  overflow-y: auto;
+`;
+
+export const HistoryList = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+export const HistoryItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #374151;
+  color: #d1d5db;
+  font-size: 13px;
+  .date {
+    color: #9ca3af;
+    font-size: 12px;
+  }
 `;

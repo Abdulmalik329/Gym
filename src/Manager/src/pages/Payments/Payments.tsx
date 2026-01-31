@@ -29,12 +29,17 @@ import {
 } from "./Payments.styled";
 
 /* ================= TYPES ================= */
-interface User {
-  id: number;
+// Ro'yxatdan keladigan user (ID bo'lmasligi mumkin)
+interface BasicUser {
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
+}
+
+// To'liq user (ID bilan)
+interface User extends BasicUser {
+  id: number;
 }
 
 interface Plan {
@@ -42,6 +47,15 @@ interface Plan {
   name: string;
   price: string;
   durationDays: number;
+}
+
+interface UserMembership {
+  id: number;
+  plan_id: number;
+  plan: Plan;
+  isActive: boolean;
+  startDate: string;
+  endDate: string;
 }
 
 type PaymentType = "PLAN" | "CUSTOM";
@@ -55,7 +69,6 @@ const getToken = () => {
   return raw.replace(/^"+|"+$/g, "").replace(/^Bearer\s/, "");
 };
 
-// Tokendan ma'lumotlarni xavfsiz olish
 const decodeTokenData = () => {
   try {
     const token = getToken();
@@ -70,11 +83,8 @@ const decodeTokenData = () => {
         .join(""),
     );
     const decoded = JSON.parse(jsonPayload);
-
-    // Token ichida har xil joylashgan bo'lishi mumkin, hammasini tekshiramiz
     const managerId = decoded.id || decoded.user?.id;
-    const gymId = decoded.gymId || decoded.gym_id || decoded.user?.gymId || 1; // Default 1
-
+    const gymId = decoded.gymId || decoded.gym_id || decoded.user?.gymId || 1;
     return { managerId, gymId };
   } catch (e) {
     console.error("Token decode error:", e);
@@ -88,11 +98,16 @@ const formatPrice = (price: string | number) => {
 
 /* ================= COMPONENT ================= */
 const Payments: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  // Ro'yxat uchun BasicUser ishlatamiz (chunki ID yo'q)
+  const [users, setUsers] = useState<BasicUser[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Modal State
+  // Modal State - bu yerda to'liq User (ID bilan) bo'ladi
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [currentMembership, setCurrentMembership] =
+    useState<UserMembership | null>(null);
+  const [loadingMembership, setLoadingMembership] = useState(false);
+  const [fetchingUserDetail, setFetchingUserDetail] = useState(false); // User ID ni olish uchun loader
 
   // Payment Form State
   const [paymentType, setPaymentType] = useState<PaymentType>("PLAN");
@@ -105,7 +120,7 @@ const Payments: React.FC = () => {
   const token = getToken();
   const tokenData = decodeTokenData();
 
-  // 1. Load Users
+  // 1. Load Users List (ID siz)
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -113,7 +128,7 @@ const Payments: React.FC = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        // API array yoki { data: [] } qaytarishi mumkin
+        // API dan kelgan data arrayini set qilamiz
         if (Array.isArray(data)) setUsers(data);
         else if (Array.isArray(data.data)) setUsers(data.data);
         else setUsers([]);
@@ -144,34 +159,119 @@ const Payments: React.FC = () => {
     fetchPlans();
   }, [token]);
 
-  // Handle Submit
+  // 3. HANDLE ROW CLICK - User ID ni olish
+  const handleRowClick = async (email: string) => {
+    setFetchingUserDetail(true);
+    const toastId = toast.loading("Foydalanuvchi ma'lumotlari yuklanmoqda...");
+
+    try {
+      // Email orqali ID bor bo'lgan to'liq ma'lumotni olamiz
+      // URL encoded qilinadi (masalan @ belgisi %40 bo'lishi uchun)
+      const res = await fetch(
+        `${API_URL}/users/by-email/${encodeURIComponent(email)}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
+      if (!res.ok) throw new Error("Foydalanuvchi ID sini olib bo'lmadi");
+
+      const fullUserData = await res.json();
+
+      // Response tuzilishi har xil bo'lishi mumkin, tekshiramiz
+      const userWithId = fullUserData.data || fullUserData;
+
+      if (!userWithId?.id) {
+        throw new Error("API ID qaytarmadi");
+      }
+
+      // Muvaffaqiyatli - modalni ochamiz
+      setSelectedUser(userWithId);
+      toast.dismiss(toastId);
+    } catch (err) {
+      console.error(err);
+      toast.error("Foydalanuvchi ma'lumotlarini olishda xatolik", {
+        id: toastId,
+      });
+    } finally {
+      setFetchingUserDetail(false);
+    }
+  };
+
+  // 4. User tanlanganda (ID bor bo'lganda) uning Membershipini yuklash
+  useEffect(() => {
+    if (selectedUser?.id && tokenData) {
+      const fetchMembership = async () => {
+        setLoadingMembership(true);
+        setCurrentMembership(null);
+        setSelectedPlanId("");
+
+        try {
+          const res = await fetch(
+            `${API_URL}/user-memberships?user_id=${selectedUser.id}&gym_id=${tokenData.gymId}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+          const data = await res.json();
+          const memberships = Array.isArray(data) ? data : data.data || [];
+
+          const active =
+            memberships.find((m: any) => m.isActive) || memberships[0];
+
+          if (active) {
+            setCurrentMembership(active);
+            setSelectedPlanId(String(active.plan_id || active.plan?.id));
+          }
+        } catch (error) {
+          console.error("Membership fetch error:", error);
+        } finally {
+          setLoadingMembership(false);
+        }
+      };
+
+      fetchMembership();
+    }
+  }, [selectedUser]); // selectedUser o'zgarganda ishlaydi
+
+  // Handle Payment Logic
   const handlePayment = async () => {
-    if (!selectedUser) return;
+    if (!selectedUser || !selectedUser.id) {
+      toast.error("Foydalanuvchi ID si topilmadi");
+      return;
+    }
     if (!tokenData?.managerId) {
       toast.error("Sessiya eskirgan. Iltimos, qayta kiring.");
       return;
     }
 
     setIsProcessing(true);
-    const toastId = toast.loading("Jarayonda...");
+    const toastId = toast.loading("To'lov jarayonda...");
 
     try {
       let finalAmount = 0;
-      let membershipId = null;
+      let finalMembershipId = currentMembership?.id || null;
       const currentGymId = Number(tokenData.gymId);
 
-      // ---------------------------------------------
-      // 1-QADAM: Membership yaratish (Agar PLAN bo'lsa)
-      // ---------------------------------------------
+      // SUMMANI ANIQLASH
       if (paymentType === "PLAN") {
         if (!selectedPlanId) throw new Error("Iltimos, tarifni tanlang");
-
         const plan = plans.find((p) => String(p.id) === selectedPlanId);
         if (!plan) throw new Error("Tarif topilmadi");
         finalAmount = parseInt(plan.price);
+      } else {
+        if (!customAmount || parseInt(customAmount) <= 0) {
+          throw new Error("Iltimos, to'g'ri summa kiriting");
+        }
+        finalAmount = parseInt(customAmount);
+      }
 
-        // Membership API ga so'rov
-        const memRes = await fetch(`${API_URL}/user-memberships`, {
+      // 1. YANGI MEMBERSHIP (Agar yo'q bo'lsa)
+      if (!finalMembershipId) {
+        if (!selectedPlanId)
+          throw new Error("Yangi a'zo uchun tarif tanlash majburiy!");
+
+        const createRes = await fetch(`${API_URL}/user-memberships`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -185,39 +285,49 @@ const Payments: React.FC = () => {
           }),
         });
 
-        const memData = await memRes.json();
+        const createData = await createRes.json();
+        if (!createRes.ok)
+          throw new Error(
+            createData.message || "Membership yaratishda xatolik",
+          );
 
-        if (!memRes.ok) {
-          // Xatolikni chiroyli qilib ko'rsatish
-          const message = memData.message || "Membership yaratishda xatolik";
-          throw new Error(Array.isArray(message) ? message[0] : message);
-        }
-
-        membershipId = memData.id || memData.data?.id;
-      } else {
-        // CUSTOM to'lov
-        if (!customAmount || parseInt(customAmount) <= 0) {
-          throw new Error("Iltimos, to'g'ri summa kiriting");
-        }
-        finalAmount = parseInt(customAmount);
+        finalMembershipId = createData.id || createData.data?.id;
       }
 
-      // ---------------------------------------------
-      // 2-QADAM: To'lovni amalga oshirish
-      // ---------------------------------------------
+      // 2. TARIFNI YANGILASH (Agar membership bor bo'lsa va PLAN tanlansa)
+      else if (paymentType === "PLAN") {
+        const currentPlanId =
+          currentMembership?.plan_id || currentMembership?.plan?.id;
+
+        if (Number(selectedPlanId) !== Number(currentPlanId)) {
+          const patchRes = await fetch(
+            `${API_URL}/user-memberships/${finalMembershipId}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                plan_id: Number(selectedPlanId),
+              }),
+            },
+          );
+
+          if (!patchRes.ok)
+            throw new Error("Tarifni o'zgartirishda xatolik (Patch)");
+        }
+      }
+
+      // 3. TO'LOV (PAYMENT)
       const paymentPayload: any = {
         gym_id: currentGymId,
         user_id: Number(selectedUser.id),
         amount: Number(finalAmount),
         method: method,
         received_by_id: Number(tokenData.managerId),
+        membership_id: Number(finalMembershipId),
       };
-
-      if (membershipId) {
-        paymentPayload.membership_id = Number(membershipId);
-      }
-
-      console.log("Sending Payment:", paymentPayload); // Debug uchun
 
       const payRes = await fetch(`${API_URL}/payments`, {
         method: "POST",
@@ -231,11 +341,10 @@ const Payments: React.FC = () => {
       const resData = await payRes.json();
 
       if (!payRes.ok) {
-        const message = resData.message || "To'lovda xatolik yuz berdi";
-        throw new Error(Array.isArray(message) ? message[0] : message);
+        throw new Error(resData.message || "To'lovda xatolik yuz berdi");
       }
 
-      toast.success("Muvaffaqiyatli! ✅", { id: toastId });
+      toast.success("To'lov muvaffaqiyatli! ✅", { id: toastId });
       closeModal();
     } catch (err: any) {
       console.error(err);
@@ -247,6 +356,7 @@ const Payments: React.FC = () => {
 
   const closeModal = () => {
     setSelectedUser(null);
+    setCurrentMembership(null);
     setPaymentType("PLAN");
     setSelectedPlanId("");
     setCustomAmount("");
@@ -265,7 +375,6 @@ const Payments: React.FC = () => {
 
   return (
     <Wrapper>
-      {/* Toast Notification Container */}
       <Toaster
         position="top-right"
         toastOptions={{
@@ -296,8 +405,14 @@ const Payments: React.FC = () => {
             <Loading>No members found</Loading>
           ) : (
             users.map((u, index) => (
-              // FIX: unique key = id + index (takrorlanishni oldini olish uchun)
-              <Row key={`${u.id}-${index}`} onClick={() => setSelectedUser(u)}>
+              <Row
+                key={`${u.email}-${index}`}
+                onClick={() => !fetchingUserDetail && handleRowClick(u.email)}
+                style={{
+                  opacity: fetchingUserDetail ? 0.7 : 1,
+                  cursor: fetchingUserDetail ? "wait" : "pointer",
+                }}
+              >
                 <Cell>
                   <Member>
                     <Avatar>{u.firstName?.charAt(0) || "U"}</Avatar>
@@ -341,6 +456,21 @@ const Payments: React.FC = () => {
               <UserDetail>
                 {selectedUser.phone} • {selectedUser.email}
               </UserDetail>
+
+              <div style={{ marginTop: "10px", fontSize: "13px" }}>
+                {loadingMembership ? (
+                  <span style={{ color: "#94a3b8" }}>
+                    Checking membership...
+                  </span>
+                ) : currentMembership ? (
+                  <span style={{ color: "#22c55e" }}>
+                    Active Plan:{" "}
+                    <b>{currentMembership.plan?.name || "Unknown Plan"}</b>
+                  </span>
+                ) : (
+                  <span style={{ color: "#eab308" }}>No Active Membership</span>
+                )}
+              </div>
             </UserInfo>
 
             <Tabs>
@@ -360,14 +490,15 @@ const Payments: React.FC = () => {
 
             {paymentType === "PLAN" ? (
               <>
-                <Label>Select Plan</Label>
+                <Label>
+                  Select Plan {currentMembership && "(Change to update)"}
+                </Label>
                 <Select
                   value={selectedPlanId}
                   onChange={(e) => setSelectedPlanId(e.target.value)}
                 >
                   <option value="">-- Choose a plan --</option>
                   {plans.map((p, index) => (
-                    // FIX: unique key
                     <option key={`${p.id}-${index}`} value={p.id}>
                       {p.name} - {formatPrice(p.price)} UZS ({p.durationDays}{" "}
                       days)
@@ -402,7 +533,10 @@ const Payments: React.FC = () => {
               )}
             </PaymentMethods>
 
-            <PayButton onClick={handlePayment} disabled={isProcessing}>
+            <PayButton
+              onClick={handlePayment}
+              disabled={isProcessing || loadingMembership}
+            >
               {isProcessing
                 ? "Processing..."
                 : `Confirm Payment: ${displayTotal.toLocaleString()} UZS`}
