@@ -6,7 +6,8 @@ import GymHeader from './components/GymHeader';
 import GymTable from './components/GymTable'; // <--- SHU TO'G'RI IMPORT QILINGANIGA ISHONCH HOSIL QILING
 import GymModal from './components/GymModal';
 import ConfirmationModal from './components/ConfirmationModal';
-import { Loader2, PackageSearch } from 'lucide-react';
+import { PackageSearch } from 'lucide-react';
+import { LoadingState } from '../../components/loadingState';
 
 export default function GymPage() {
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -77,10 +78,7 @@ export default function GymPage() {
                 )}
 
                 {isLoading && gyms.length === 0 && (
-                    <div className="flex flex-col items-center justify-center mt-32 gap-4">
-                        <Loader2 className="animate-spin text-blue-500 w-12 h-12" />
-                        <p className="text-slate-400 font-medium">Zallar yuklanmoqda...</p>
-                    </div>
+                    <LoadingState message='Yuklanmoqda...' />
                 )}
             </div>
 

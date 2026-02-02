@@ -1,14 +1,13 @@
 import React from 'react';
 import {
-    Package, Plus, RefreshCw, Sun, Moon, Search
+    Package, Plus, RefreshCw, Search
 } from 'lucide-react';
 
 interface HeaderProps {
     totalPlans: number;
     searchTerm: string;
     setSearchTerm: (value: string) => void;
-    isDarkMode: boolean;
-    toggleTheme: () => void;
+    // isDarkMode va toggleTheme olib tashlandi
     isLoading: boolean;
     onRefresh: () => void;
     onAddClick: () => void;
@@ -19,8 +18,6 @@ export const Header: React.FC<HeaderProps> = ({
     totalPlans,
     searchTerm,
     setSearchTerm,
-    isDarkMode,
-    toggleTheme,
     isLoading,
     onRefresh,
     onAddClick,
@@ -52,13 +49,7 @@ export const Header: React.FC<HeaderProps> = ({
                         <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
                     </button>
 
-                    {/* Tema */}
-                    <button
-                        onClick={toggleTheme}
-                        className={`p-3 rounded-xl border transition-all active:scale-90 ${theme.card}`}
-                    >
-                        {isDarkMode ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} />}
-                    </button>
+                    {/* Tema almashtirish tugmasi olib tashlandi */}
 
                     {/* Yangi tarif qo'shish */}
                     <button

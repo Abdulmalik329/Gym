@@ -142,13 +142,20 @@ const Payments: React.FC = () => {
     fetchUsers();
   }, [token]);
 
-  // 2. Load Plans
+  // 2. Load Plans (O'ZGARTIRILDI: gym_id QO'SHILDI)
   useEffect(() => {
     const fetchPlans = async () => {
+      // Agar tokenData bo'lmasa yoki gymId yo'q bo'lsa, to'xtatamiz
+      if (!tokenData?.gymId) return;
+
       try {
-        const res = await fetch(`${API_URL}/membership-plans`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        // MUHIM O'ZGARISH SHU YERDA: ?gym_id=${tokenData.gymId}
+        const res = await fetch(
+          `${API_URL}/membership-plans?gym_id=${tokenData.gymId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
         const data = await res.json();
         const list = Array.isArray(data) ? data : data.data || [];
         setPlans(list);
@@ -157,7 +164,7 @@ const Payments: React.FC = () => {
       }
     };
     fetchPlans();
-  }, [token]);
+  }, [token, tokenData?.gymId]); // Dependency ga tokenData.gymId qo'shildi
 
   // 3. HANDLE ROW CLICK - User ID ni olish
   const handleRowClick = async (email: string) => {
@@ -440,7 +447,6 @@ const Payments: React.FC = () => {
         </Table>
       )}
 
-      {/* ================= PAYMENT MODAL ================= */}
       {selectedUser && (
         <Overlay onClick={closeModal}>
           <ModalContent onClick={(e) => e.stopPropagation()}>

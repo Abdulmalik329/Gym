@@ -1,17 +1,17 @@
 import { Trophy, Users, DollarSign, TrendingUp, PieChart as PieChartIcon } from 'lucide-react';
 import { DashboardHeader } from './components/DashboardHeader';
-import { LoadingState } from './components/LoadingState';
 import { StatCard } from './components/StatCard';
 import GymChart from "../../components/GymChart";
 import GymPieChart from "../../components/GymPieChart";
 import { useDashboardData } from './hooks/useDashboardData';
 import { dashboardTheme as theme } from './constants/dashboard.theme';
+import { LoadingState } from '../../components/loadingState';
 
 export default function Dashboard() {
     const { data, fetchData, isInitialLoading } = useDashboardData();
 
     if (isInitialLoading) {
-        return <LoadingState theme={theme} />;
+        return <LoadingState message='Yuklanmoqda...' />;
     }
 
     return (
@@ -56,7 +56,7 @@ export default function Dashboard() {
                             </div>
                             <h2 className="text-xl font-black italic uppercase tracking-tight">Daromad tahlili</h2>
                         </div>
-                        <div className="h-[350px] w-full">
+                        <div className="w-full h-[350px]">
                             <GymChart
                                 data={data.chartData}
                                 totalLabel={data.totalRevenue}
@@ -72,7 +72,7 @@ export default function Dashboard() {
                             </div>
                             <h2 className="text-xl font-black italic uppercase tracking-tight">Zallar ulushi</h2>
                         </div>
-                        <div className="h-[350px] w-full flex items-center justify-center">
+                        <div className="w-full flex items-center justify-center">
                             <GymPieChart data={data.chartData} />
                         </div>
                     </div>

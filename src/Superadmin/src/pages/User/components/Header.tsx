@@ -1,14 +1,10 @@
 import React from 'react';
-import {
-    Users, UserPlus, RefreshCw, Sun, Moon, Search
-} from 'lucide-react';
+import { Users, UserPlus, RefreshCw, Search } from 'lucide-react';
 
 interface HeaderProps {
     totalUsers: number;
     searchTerm: string;
     setSearchTerm: (value: string) => void;
-    isDarkMode: boolean;
-    toggleTheme: () => void;
     isLoading: boolean;
     onRefresh: () => void;
     onAddClick: () => void;
@@ -19,8 +15,6 @@ export const Header: React.FC<HeaderProps> = ({
     totalUsers,
     searchTerm,
     setSearchTerm,
-    isDarkMode,
-    toggleTheme,
     isLoading,
     onRefresh,
     onAddClick,
@@ -28,53 +22,39 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
     return (
         <header className="mb-10">
-            {/* YUQORI QISM */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
                 <div className="flex items-center gap-5">
                     <div className="bg-blue-600 p-3 rounded-2xl shadow-lg shadow-blue-500/20">
                         <Users className="text-white w-8 h-8" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-extrabold tracking-tight">Foydalanuvchilar</h1>
+                        <h1 className="text-3xl font-extrabold tracking-tight">Menejerlar</h1>
                         <p className={`${theme.subText} text-sm mt-1 font-medium flex items-center gap-2`}>
-                            <span className={`w-2 h-2 rounded-full ${isLoading ? 'bg-yellow-500 animate-spin' : 'bg-green-500'}`}></span>
-                            Jami {totalUsers} ta foydalanuvchi
+                            <span className={`w-2 h-2 rounded-full ${isLoading ? 'bg-blue-500 animate-pulse' : 'bg-emerald-500'}`}></span>
+                            Jami: {totalUsers} ta menejer
                         </p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-3 w-full md:w-auto">
-                    {/* Yangilash tugmasi */}
                     <button
                         onClick={onRefresh}
-                        className={`p-3 rounded-xl border transition-all active:rotate-180 ${theme.card}`}
-                        title="Ma'lumotlarni yangilash"
+                        disabled={isLoading}
+                        className={`p-3 rounded-xl border transition-all active:scale-95 disabled:opacity-50 ${theme.card}`}
                     >
-                        <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
+                        <RefreshCw size={20} className={`${isLoading ? 'animate-spin text-blue-500' : ''}`} />
                     </button>
 
-                    {/* Tema almashtirish */}
-                    <button
-                        onClick={toggleTheme}
-                        className={`p-3 rounded-xl border transition-all ${theme.card}`}
-                        title={isDarkMode ? "Yorug' rejim" : "Tungi rejim"}
-                    >
-                        {isDarkMode ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} />}
-                    </button>
-
-                    {/* Qo'shish tugmasi */}
                     <button
                         onClick={onAddClick}
                         className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 shadow-xl shadow-blue-600/20 transition-all font-semibold active:scale-95"
                     >
                         <UserPlus size={20} />
-                        <span className="hidden sm:inline">Menejer Qo'shish</span>
-                        <span className="sm:hidden">Qo'shish</span>
+                        <span>Menejer Qo'shish</span>
                     </button>
                 </div>
             </div>
 
-            {/* QIDIRUV PANELI */}
             <div className={`p-4 rounded-2xl border shadow-sm flex flex-col md:flex-row gap-4 items-center ${theme.card}`}>
                 <div className="relative flex-1 w-full">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />

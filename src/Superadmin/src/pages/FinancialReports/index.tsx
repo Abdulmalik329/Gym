@@ -3,11 +3,11 @@ import { Users, CreditCard } from 'lucide-react';
 import { FinancialHeader } from './components/FinancialHeader';
 import { RevenueChart } from './components/RevenueChart';
 import { PaymentsTable } from './components/PaymentsTable';
-import { LoadingState } from '../Dashboard/components/LoadingState'; 
 
 import { useFinancialData } from './hooks/useFinancialData';
 import { dashboardTheme as theme } from '../Dashboard/constants/dashboard.theme';
 import { useMemo, useState } from 'react';
+import { LoadingState } from '../../components/loadingState';
 
 export default function FinancialReports() {
     const [searchTerm, setSearchTerm] = useState("");
@@ -32,7 +32,7 @@ export default function FinancialReports() {
     }, [payments, searchTerm]);
 
     if (isLoading) {
-        return <LoadingState theme={theme} message="Moliyaviy ma'lumotlar tahlil qilinmoqda..." />;
+        return <LoadingState message="Yuklanmoqda..." />;
     }
 
     return (
@@ -42,7 +42,7 @@ export default function FinancialReports() {
                 <FinancialHeader />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-                    <div className="bg-slate-900 p-8 rounded-[2rem] border border-slate-800 shadow-xl relative overflow-hidden group">
+                    <div className="bg-slate-900 p-8 border border-slate-800 shadow-xl relative overflow-hidden group">
                         <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Umumiy Tushum</p>
                         <div className="text-4xl font-black text-emerald-500 tracking-tighter">
                             {totalRevenue.toLocaleString()} <span className="text-sm">UZS</span>
@@ -52,7 +52,7 @@ export default function FinancialReports() {
                         </div>
                     </div>
 
-                    <div className="bg-slate-900 p-8 rounded-[2rem] border border-slate-800 shadow-xl relative overflow-hidden group">
+                    <div className="bg-slate-900 p-8 border border-slate-800 shadow-xl relative overflow-hidden group">
                         <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Tranzaksiyalar soni</p>
                         <div className="text-4xl font-black text-blue-500 tracking-tighter">
                             {payments.length} <span className="text-sm">ta</span>

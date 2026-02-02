@@ -1,23 +1,22 @@
-import  { useState, useEffect, useMemo } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
 
-// Komponentlarni import qilish (Named imports)
+// Komponentlarni import qilish
 import { Header } from './components/Header';
 import { PlanCard } from './components/PlanCard';
 import { PlanForm } from './components/PlanForm';
 import { ConfirmModal } from './components/ConfirmModal';
 
-// API va Theme (Casing xatosi to'g'rilangan: kichik 'user' harfi bilan)
+// API va Theme
 import { planApi } from './services/planApi';
 import { getTheme } from '../User/constants/theme';
 
-// Turlarni import qilish (verbatimModuleSyntax xatosi to'g'rilangan)
+// Turlarni import qilish
 import type { MembershipPlan, ConfirmModalState } from './types';
+import { LoadingState } from '../../components/loadingState';
 
 export default function MembershipManagement() {
     // --- STATES ---
     const [plans, setPlans] = useState<MembershipPlan[]>([]);
-    const [isDarkMode, setIsDarkMode] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
@@ -32,13 +31,13 @@ export default function MembershipManagement() {
         onConfirm: null
     });
 
-    const theme = getTheme(isDarkMode);
+    // Tema doimiy ravish bir marta dark mode holatida yuklanadi
+    const theme = getTheme(true);
 
     // --- API CALLS ---
     const fetchPlans = async () => {
         setIsLoading(true);
         try {
-            // planApi.getPlans endi MembershipPlan[] qaytaradi
             const data = await planApi.getPlans();
             setPlans(data);
         } catch (err: any) {
@@ -74,7 +73,6 @@ export default function MembershipManagement() {
     const handleToggleActive = async (plan: MembershipPlan) => {
         setIsLoading(true);
         try {
-            // toggleStatus nomi planApi da to'g'irlandi
             await planApi.toggleStatus(plan.id);
             fetchPlans();
         } catch (err: any) {
@@ -102,7 +100,6 @@ export default function MembershipManagement() {
         });
     };
 
-    // --- HELPERS ---
     const showNotification = (title: string, message: string, type: ConfirmModalState['type']) => {
         setConfirmModal({ isOpen: true, title, message, type, onConfirm: null });
     };
@@ -113,26 +110,18 @@ export default function MembershipManagement() {
         );
     }, [plans, searchTerm]);
 
-    // --- RENDER ---
     if (isInitialLoading) {
-        return (
-            <div className={`min-h-screen flex flex-col items-center justify-center ${theme.bg}`}>
-                <Loader2 className="animate-spin text-emerald-500 w-12 h-12 mb-4" />
-                <p className="font-bold animate-pulse">Tariflar yuklanmoqda...</p>
-            </div>
-        );
+        return <LoadingState message='Yuklanmoqda...' />;
     }
 
     return (
-        <div className={`min-h-screen ${theme.bg} p-4 md:p-8 transition-colors duration-500`}>
+        <div className={`min-h-screen ${theme.bg} p-4 md:p-8`}>
             <div className="max-w-7xl mx-auto">
 
                 <Header
                     totalPlans={plans.length}
                     searchTerm={searchTerm}
                     setSearchTerm={setSearchTerm}
-                    isDarkMode={isDarkMode}
-                    toggleTheme={() => setIsDarkMode(!isDarkMode)}
                     isLoading={isLoading}
                     onRefresh={fetchPlans}
                     onAddClick={() => { setEditingPlan(null); setIsModalOpen(true); }}
@@ -175,12 +164,11 @@ export default function MembershipManagement() {
                     onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
                 />
 
-                {/* Next.js/React Style xatoligi tuzatildi */}
                 <style dangerouslySetInnerHTML={{
                     __html: `
                     .custom-scrollbar::-webkit-scrollbar { width: 6px; }
                     .custom-scrollbar::-webkit-scrollbar-thumb { 
-                        background: ${isDarkMode ? '#334155' : '#cbd5e1'}; 
+                        background: #334155; 
                         border-radius: 10px; 
                     }
                 ` }} />
