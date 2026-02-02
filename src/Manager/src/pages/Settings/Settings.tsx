@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
 import {
@@ -44,8 +44,8 @@ const BASE_URL = "https://nt-gym-api.it-mahalla.uz";
 const API = {
   ME: "/api/users/me",
   UPDATE_USER: (id: number) => `/api/users/${id}`,
-  PASS_SEND_OTP: "/api/auth/password/send-otp", // Endpoint backendga moslab o'zgartiring
-  PASS_VERIFY_OTP: "/api/auth/password/verify-otp", // Endpoint backendga moslab o'zgartiring
+  PASS_SEND_OTP: "/api/auth/password/send-otp",
+  PASS_VERIFY_OTP: "/api/auth/password/verify-otp",
 };
 
 const api = axios.create({ baseURL: BASE_URL });
@@ -90,11 +90,9 @@ const Settings = () => {
     gymId: null,
   });
 
-  // PHONE (no OTP)
   const [newPhone, setNewPhone] = useState("");
   const [phoneSaving, setPhoneSaving] = useState(false);
 
-  // PASSWORD (OTP)
   const [passStep, setPassStep] = useState<1 | 2>(1);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -102,7 +100,6 @@ const Settings = () => {
   const otpValue = useMemo(() => otp.join(""), [otp]);
   const [passBusy, setPassBusy] = useState(false);
 
-  // UI messages
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -159,7 +156,6 @@ const Settings = () => {
     loadMe();
   }, []);
 
-  /* ===================== PHONE UPDATE ===================== */
   const savePhone = async () => {
     toast("", "");
     const cleaned = newPhone.trim();
@@ -184,7 +180,6 @@ const Settings = () => {
     }
   };
 
-  /* ===================== PASSWORD OTP FLOW ===================== */
   const sendPasswordOtp = async () => {
     toast("", "");
 
@@ -249,6 +244,7 @@ const Settings = () => {
     }
   };
 
+  // O'ZGARTIRILDI: Event tipini berish xatolikni bartaraf etadi
   const onOtpChange = (i: number, val: string) => {
     const v = val.slice(-1);
     const copy = [...otp];
@@ -278,7 +274,6 @@ const Settings = () => {
       {error && <ErrorText>⚠ {error}</ErrorText>}
       {success && <SuccessText>✓ {success}</SuccessText>}
 
-      {/* PROFILE CARD */}
       <Card>
         <CardHeader>
           <CardTitle>Profile</CardTitle>
@@ -310,7 +305,6 @@ const Settings = () => {
         </AvatarRow>
       </Card>
 
-      {/* EMAIL CARD */}
       <Card>
         <CardHeader>
           <CardTitle>Email Address</CardTitle>
@@ -323,7 +317,6 @@ const Settings = () => {
         </Field>
       </Card>
 
-      {/* PHONE CARD */}
       <Card>
         <CardHeader>
           <CardTitle>Phone Number</CardTitle>
@@ -334,7 +327,9 @@ const Settings = () => {
             <Label>Phone</Label>
             <Input
               value={newPhone}
-              onChange={(e) => setNewPhone(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setNewPhone(e.target.value)
+              }
               placeholder="+998901234567"
             />
             <Hint>This number will be used for account notifications.</Hint>
@@ -346,7 +341,6 @@ const Settings = () => {
         </Row>
       </Card>
 
-      {/* PASSWORD CARD */}
       <Card>
         <CardHeader>
           <CardTitle>Security</CardTitle>
@@ -359,7 +353,9 @@ const Settings = () => {
               <Input
                 type="password"
                 value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setCurrentPassword(e.target.value)
+                }
                 placeholder="••••••••"
               />
             </Field>
@@ -371,7 +367,9 @@ const Settings = () => {
               <Input
                 type="password"
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setNewPassword(e.target.value)
+                }
                 placeholder="Minimum 6 characters"
               />
               <Hint>
@@ -407,7 +405,9 @@ const Settings = () => {
                   value={x}
                   maxLength={1}
                   inputMode="numeric"
-                  onChange={(e) => onOtpChange(i, e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    onOtpChange(i, e.target.value)
+                  }
                 />
               ))}
             </CodeRow>

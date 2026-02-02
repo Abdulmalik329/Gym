@@ -1,5 +1,5 @@
 import React from "react";
-// Agar react-icons bo'lmasa o'rnating: npm install react-icons
+import { useLocation } from "react-router-dom";
 import {
   FiGrid,
   FiUsers,
@@ -8,9 +8,8 @@ import {
   FiLogOut,
   FiCheck,
   FiCreditCard,
-  FiPlus,
-  FiStar,
 } from "react-icons/fi";
+
 import {
   Container,
   LogoWrapper,
@@ -22,16 +21,60 @@ import {
   LogoutBtn,
 } from "./Sidebar.styled";
 
-interface Props {
+interface SidebarProps {
   isOpen: boolean;
 }
 
-const Sidebar: React.FC<Props> = ({ isOpen }) => {
+interface MenuLink {
+  path: string;
+  label: string;
+  icon: React.ReactNode;
+}
+
+const menuItems: MenuLink[] = [
+  {
+    path: "/manager/dashboard",
+    label: "Dashboard",
+    icon: <FiGrid size={22} />,
+  },
+  { path: "/manager/members", label: "Members", icon: <FiUsers size={22} /> },
+  {
+    path: "/manager/membership-plans",
+    label: "Membership Plans",
+    icon: <FiCreditCard size={22} />,
+  },
+  {
+    path: "/manager/payments",
+    label: "Payments",
+    icon: <FiCreditCard size={22} />,
+  },
+  {
+    path: "/manager/reports",
+    label: "Reports",
+    icon: <FiPieChart size={22} />,
+  },
+  {
+    path: "/manager/settings",
+    label: "Settings",
+    icon: <FiSettings size={22} />,
+  },
+];
+
+const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
+  const location = useLocation();
+
+  const handleLogout = () => {
+    if (window.confirm("Tizimdan chiqmoqchimisiz?")) {
+      localStorage.removeItem("token");
+      window.location.href = "/login";
+    }
+  };
+
   return (
     <Container isOpen={isOpen}>
       <LogoWrapper isOpen={isOpen}>
         <LogoIcon>
-          <FiCheck size={18} strokeWidth={4} />
+          <FiCheck size={18} strokeWidth={4} color="#fff" />
         </LogoIcon>
         <LogoText isOpen={isOpen}>
           Gym<span>Bros</span>
@@ -39,44 +82,21 @@ const Sidebar: React.FC<Props> = ({ isOpen }) => {
       </LogoWrapper>
 
       <Menu>
-        <MenuItem to="/manager/dashboard" isOpen={isOpen}>
-          <FiGrid size={22} />
-          <ItemText isOpen={isOpen}>Dashboard</ItemText>
-        </MenuItem>
-
-        <MenuItem to="/manager/members" isOpen={isOpen}>
-          <FiUsers size={22} />
-          <ItemText isOpen={isOpen}>Members</ItemText>
-        </MenuItem>
-
-        <MenuItem to="/manager/membership-plans" isOpen={isOpen}>
-          <FiCreditCard size={22} />
-          <ItemText isOpen={isOpen}>Membership Plans</ItemText>
-        </MenuItem>
-
-        <MenuItem to="/manager/payments" isOpen={isOpen}>
-          <FiCreditCard size={22} />
-          <ItemText isOpen={isOpen}>Payments</ItemText>
-        </MenuItem>
-
-        <MenuItem to="/manager/reports" isOpen={isOpen}>
-          <FiPieChart size={22} />
-          <ItemText isOpen={isOpen}>Reports</ItemText>
-        </MenuItem>
-
-        <MenuItem to="/manager/settings" isOpen={isOpen}>
-          <FiSettings size={22} />
-          <ItemText isOpen={isOpen}>Settings</ItemText>
-        </MenuItem>
+        {menuItems.map((item) => (
+          <MenuItem
+            key={item.path}
+            to={item.path}
+            isOpen={isOpen}
+            // location.pathname kiritilgan path bilan bir xil bo'lsa true qaytadi
+            $active={location.pathname === item.path}
+          >
+            {item.icon}
+            <ItemText isOpen={isOpen}>{item.label}</ItemText>
+          </MenuItem>
+        ))}
       </Menu>
 
-      <LogoutBtn
-        isOpen={isOpen}
-        onClick={() => {
-          localStorage.removeItem("token");
-          window.location.href = "/login";
-        }}
-      >
+      <LogoutBtn isOpen={isOpen} onClick={handleLogout}>
         <FiLogOut size={20} />
         <ItemText isOpen={isOpen}>Logout</ItemText>
       </LogoutBtn>

@@ -1,8 +1,15 @@
 import styled from "styled-components";
 import { NavLink } from "react-router-dom";
 
+// --- TYPES ---
 interface SidebarProps {
   isOpen: boolean;
+}
+
+// MenuItem uchun maxsus interfeys
+interface MenuItemProps {
+  isOpen: boolean;
+  $active?: boolean; // Sidebar.tsx dan kelayotgan $active propini qabul qilish uchun
 }
 
 export const Container = styled.aside<SidebarProps>`
@@ -62,7 +69,8 @@ export const Menu = styled.nav`
   flex: 1;
 `;
 
-export const MenuItem = styled(NavLink)<{ isOpen: boolean }>`
+// O'ZGARTIRILGAN: MenuItem interfeys bilan boyitildi
+export const MenuItem = styled(NavLink)<MenuItemProps>`
   display: flex;
   align-items: center;
   justify-content: ${({ isOpen }) => (isOpen ? "flex-start" : "center")};
@@ -75,16 +83,39 @@ export const MenuItem = styled(NavLink)<{ isOpen: boolean }>`
   height: 48px;
   transition: all 0.2s;
   white-space: nowrap;
+  position: relative;
 
+  // $active prop orqali yoki NavLink ning o'zining active classi orqali stillash
+  ${({ $active }) =>
+    $active &&
+    `
+    background: #1f2937;
+    color: #fff;
+    &::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      width: 3px;
+      height: 24px;
+      background: #3b82f6;
+      border-radius: 0 4px 4px 0;
+    }
+  `}
+
+  // Eski active klassi uchun ham qo'shimcha xavfsizlik
   &.active {
     background: #1f2937;
     color: #fff;
-    border-left: 3px solid #3b82f6;
   }
 
   &:hover:not(.active) {
     background: #1f2937;
     color: #e5e7eb;
+  }
+
+  svg {
+    min-width: 22px;
+    color: ${({ $active }) => ($active ? "#3b82f6" : "inherit")};
   }
 `;
 
@@ -109,6 +140,7 @@ export const LogoutBtn = styled.button<{ isOpen: boolean }>`
   cursor: pointer;
   height: 48px;
   transition: all 0.2s;
+  font-weight: 500;
 
   &:hover {
     background: #ef4444;

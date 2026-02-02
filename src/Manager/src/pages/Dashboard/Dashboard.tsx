@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import {
   BarChart,
@@ -46,51 +46,64 @@ import {
 } from "./Dashboard.styled";
 
 // --- TYPES ---
+interface AttendanceStats {
+  value: number;
+  target: number;
+  percent_change: number;
+}
+
+interface NewMembersStats {
+  value: number;
+  percent_change: number;
+}
+
 interface GymManagerStats {
   stats: {
-    attendance: { value: number; target: number; percent_change: number };
-    new_members: { value: number; percent_change: number };
+    attendance: AttendanceStats;
+    new_members: NewMembersStats;
   };
   heatmap: { date: string; count: number }[];
   active_members_total: number;
 }
 
+interface ExpiringUser {
+  id: number;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  daysLeft: number;
+  endDate: string;
+}
+
 interface GeneralReport {
-  monthly_revenue: string; // API string qaytarmoqda "4865000"
+  monthly_revenue: string;
   active_members_count: number;
   today_attendance_count: number;
-  users_expiring_soon: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    phone: string;
-    daysLeft: number; // Agar backend hisoblab bersa, yoki endDate dan hisoblaymiz
-    endDate: string;
-  }[];
+  users_expiring_soon: ExpiringUser[];
 }
 
 interface RevenueChartItem {
-  month: string; // "2026-01"
+  month: string;
   amount: number;
 }
 
 const BASE_URL = "https://nt-gym-api.it-mahalla.uz/api";
 const GYM_ID = 1;
 
-const Dashboard = () => {
+const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<GymManagerStats | null>(null);
   const [report, setReport] = useState<GeneralReport | null>(null);
   const [revenueChart, setRevenueChart] = useState<RevenueChartItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // Currency formatter
-  const formatMoney = (amount: number | string) => {
+  // Currency formatter - formatMoney funksiyasi
+  const formatMoney = useCallback((amount: number | string) => {
     return new Intl.NumberFormat("uz-UZ", {
       style: "currency",
       currency: "UZS",
       maximumFractionDigits: 0,
     }).format(Number(amount));
-  };
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -98,15 +111,16 @@ const Dashboard = () => {
         const token = localStorage.getItem("token");
         const headers = { Authorization: `Bearer ${token}` };
 
-        // 3 ta API ni parallel chaqiramiz
         const [statsRes, reportRes, revChartRes] = await Promise.all([
-          axios.get(`${BASE_URL}/reports/gym-manager-stats?gym_id=${GYM_ID}`, {
-            headers,
-          }),
-          axios.get(`${BASE_URL}/reports/gym-manager?gym_id=${GYM_ID}`, {
-            headers,
-          }),
-          axios.get(
+          axios.get<GymManagerStats>(
+            `${BASE_URL}/reports/gym-manager-stats?gym_id=${GYM_ID}`,
+            { headers },
+          ),
+          axios.get<GeneralReport>(
+            `${BASE_URL}/reports/gym-manager?gym_id=${GYM_ID}`,
+            { headers },
+          ),
+          axios.get<RevenueChartItem[]>(
             `${BASE_URL}/reports/gym-manager/revenue-chart?gym_id=${GYM_ID}`,
             { headers },
           ),
@@ -125,24 +139,25 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
-  if (loading)
+  if (loading) {
     return (
       <Container>
         <Title>Yuklanmoqda...</Title>
       </Container>
     );
-  if (!stats || !report)
+  }
+
+  if (!stats || !report) {
     return (
       <Container>
         <Title>Ma'lumot topilmadi</Title>
       </Container>
     );
+  }
 
-  // Data extraction
   const { attendance, new_members } = stats.stats;
-  const totalMembers = stats.active_members_total; // Yoki report.active_members_count
+  const totalMembers = stats.active_members_total;
 
-  // 1. Attendance Chart Data
   const attendanceData = stats.heatmap.map((item) => ({
     name: new Date(item.date).toLocaleDateString("en-US", {
       month: "short",
@@ -151,13 +166,11 @@ const Dashboard = () => {
     count: item.count,
   }));
 
-  // 2. Revenue Chart Data
   const revenueData = revenueChart.map((item) => ({
-    name: item.month, // "2026-01" -> Formatlash mumkin
+    name: item.month,
     amount: Number(item.amount),
   }));
 
-  // Progress calculations
   const attendancePercent = Math.min(
     (attendance.value / (attendance.target || 20)) * 100,
     100,
@@ -172,9 +185,8 @@ const Dashboard = () => {
         </div>
       </Header>
 
-      {/* --- TOP STATISTICS (3 CARDS) --- */}
+      {/* --- TOP STATISTICS --- */}
       <TopGrid>
-        {/* 1. Total Members */}
         <StatCard>
           <StatHeader>
             <IconBox $bg="rgba(139, 92, 246, 0.1)" $color="#8b5cf6">
@@ -191,7 +203,6 @@ const Dashboard = () => {
           </ProgressBar>
         </StatCard>
 
-        {/* 2. New Members */}
         <StatCard>
           <StatHeader>
             <IconBox $bg="rgba(16, 185, 129, 0.1)" $color="#10b981">
@@ -218,7 +229,6 @@ const Dashboard = () => {
           </ProgressBar>
         </StatCard>
 
-        {/* 3. Monthly Revenue (Yangi) */}
         <StatCard>
           <StatHeader>
             <IconBox $bg="rgba(245, 158, 11, 0.1)" $color="#f59e0b">
@@ -238,9 +248,8 @@ const Dashboard = () => {
         </StatCard>
       </TopGrid>
 
-      {/* --- MIDDLE CHARTS SECTION --- */}
+      {/* --- MIDDLE CHARTS --- */}
       <ChartsGrid>
-        {/* Left: Attendance (Detailed) */}
         <AttendanceSection>
           <AttendanceInfo>
             <div
@@ -262,7 +271,6 @@ const Dashboard = () => {
                 Attendance
               </h2>
             </div>
-
             <div>
               <StatLabel style={{ marginBottom: "8px" }}>
                 Today's Visits
@@ -272,7 +280,6 @@ const Dashboard = () => {
                 <span>/ {attendance.target || 20} target</span>
               </LargeValue>
             </div>
-
             <div>
               <div
                 style={{
@@ -314,6 +321,8 @@ const Dashboard = () => {
                     border: "1px solid #374151",
                     borderRadius: "8px",
                   }}
+                  // TS Xatosini bartaraf etish:
+                  formatter={(value: any) => value}
                 />
                 <Bar
                   dataKey="count"
@@ -326,7 +335,6 @@ const Dashboard = () => {
           </AttendanceChartWrapper>
         </AttendanceSection>
 
-        {/* Right: Revenue Trend (Yangi) */}
         <ChartCard>
           <SectionTitle>Revenue Trend</SectionTitle>
           <div style={{ width: "100%", height: "250px" }}>
@@ -350,7 +358,7 @@ const Dashboard = () => {
                   tick={{ fontSize: 10 }}
                   axisLine={false}
                   tickLine={false}
-                  tickFormatter={(value) => `${value / 1000}k`}
+                  tickFormatter={(v) => `${v / 1000}k`}
                 />
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -363,7 +371,10 @@ const Dashboard = () => {
                     border: "1px solid #374151",
                     borderRadius: "8px",
                   }}
-                  formatter={(value: any) => formatMoney(value)}
+                  // MUHIM: Xatolikni to'g'irlaydigan formatter
+                  formatter={(value: number | string | undefined) =>
+                    value !== undefined ? formatMoney(value) : ""
+                  }
                 />
                 <Area
                   type="monotone"
@@ -378,7 +389,7 @@ const Dashboard = () => {
         </ChartCard>
       </ChartsGrid>
 
-      {/* --- BOTTOM SECTION: EXPIRING MEMBERS --- */}
+      {/* --- BOTTOM SECTION --- */}
       <ChartCard style={{ marginTop: "0" }}>
         <div
           style={{
